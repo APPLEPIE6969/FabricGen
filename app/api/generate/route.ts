@@ -194,6 +194,11 @@ Rules:
 
     try {
       console.log(`[${provider.toUpperCase()}] Trying ${model} (${params})...`);
+      
+      // 1. Strict timeout (15 seconds) so a stuck API doesn't hang the loop
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 15000);
+
       const completion = await client.chat.completions.create({
         messages: [
           { role: 'system', content: systemPrompt },
@@ -201,14 +206,17 @@ Rules:
         ],
         model: model,
         response_format: { type: 'json_object' },
-      });
+      }, { signal: abortController.signal });
+
+      clearTimeout(timeoutId);
 
       const responseData = JSON.parse(completion.choices[0].message.content || '{"upsert": [], "delete": []}');
 
-      // Generate pixel art textures if needed
+      // 2. Parallel Pixel Art Generation
       if (responseData.upsert) {
-        for (const file of responseData.upsert) {
-          if (file.encoding === 'texture_prompt') {
+        const texturePromises = responseData.upsert
+          .filter((file: any) => file.encoding === 'texture_prompt')
+          .map(async (file: any) => {
             console.log(`Generating 16x16 texture for ${file.path} with prompt: ${file.content}`);
             const base64 = await generatePixelArt(file.content);
             if (base64) {
@@ -218,14 +226,20 @@ Rules:
               file.content = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAFklEQVR42mP8z8BQz0AEYBxVMBiYAAAhS6Pz79rv9AAAAABJRU5ErkJggg==";
               file.encoding = 'base64';
             }
-          }
+          });
+
+        // Wait for all textures to generate concurrently
+        if (texturePromises.length > 0) {
+          await Promise.all(texturePromises);
         }
       }
 
       console.log(`✓ Success with [${provider.toUpperCase()}] ${model} (${params})`);
       return NextResponse.json(responseData);
     } catch (error: any) {
-      console.error(`✗ Failed [${provider.toUpperCase()}] ${model}:`, error.message || error);
+      // Catch aborts as timezone issues vs actual server errors
+      const isTimeout = error.name === 'AbortError' || error.message?.includes('aborted');
+      console.error(`✗ Failed [${provider.toUpperCase()}] ${model}:`, isTimeout ? 'Timed out after 15s' : error.message || error);
       lastError = error;
       continue;
     }
