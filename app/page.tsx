@@ -18,7 +18,6 @@ export default function Home() {
   const [building, setBuilding] = useState(false);
   const [buildProgress, setBuildProgress] = useState(0);
   const [buildStatus, setBuildStatus] = useState<{ status: string; conclusion?: string | null; htmlUrl?: string; downloadUrl?: string } | null>(null);
-  const [appwriteStatus, setAppwriteStatus] = useState<'idle' | 'pinging' | 'online' | 'error'>('idle');
   const [generatedFiles, setGeneratedFiles] = useState<ModFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<ModFile | null>(null);
   const [formData, setFormData] = useState({
@@ -243,22 +242,6 @@ export default function Home() {
             <a href="https://github.com/diddy62626/Minecraft-Fabric-1.21.11-Mod-Generator" target="_blank" className="hover:text-zinc-200 transition-colors inline-flex items-center gap-1">GitHub <ExternalLink className="w-2.5 h-2.5" /></a>
           </div>
           <div className="flex items-center gap-4">
-             <button 
-               onClick={handlePingAppwrite} 
-               className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${
-                 appwriteStatus === 'online' ? 'bg-green-500/10 border-green-500/20 text-green-500 shadow-lg shadow-green-900/10' : 
-                 appwriteStatus === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
-                 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-200'
-               }`}
-               title="Verify Appwrite Connection"
-             >
-               {appwriteStatus === 'pinging' ? (
-                 <Loader2 className="w-3 h-3 animate-spin" />
-               ) : (
-                 <Signal className="w-3 h-3" />
-               )}
-               {appwriteStatus === 'online' ? 'Appwrite Online' : appwriteStatus === 'error' ? 'Connection Failed' : 'Ping Appwrite'}
-             </button>
              <button onClick={handleReset} className="p-2 text-zinc-600 hover:text-orange-500 transition-colors" title="Reset Project"><RotateCcw className="w-5 h-5" /></button>
              <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-600 font-bold text-xs">AI</div>
           </div>
