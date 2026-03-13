@@ -42,6 +42,7 @@ const PROVIDERS: Provider[] = [
     apiKeyEnv: 'NVIDIA_API_KEY',
     models: [
       // Tier 1 — Code-specialist flagships
+      'z-ai/glm-5',                                 // 744B MoE, deep reasoning
       'qwen/qwen3-coder-480b-a35b-instruct',       // 480B MoE, purpose-built for code
       'mistralai/devstral-2-123b-instruct-2512',    // 123B, state-of-art code model
 
