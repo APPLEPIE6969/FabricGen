@@ -1,0 +1,59 @@
+name: Build Minecraft Mod
+on:
+  workflow_dispatch:
+    inputs:
+      mod_files_json:
+        description: 'JSON string of mod files'
+        required: true
+      mod_id:
+        description: 'Mod ID'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Write Mod Files
+        env:
+          MOD_FILES_JSON: ${{ github.event.inputs.mod_files_json }}
+        run: |
+          python3 -c "
+          import json, os, base64
+          data = json.loads(os.environ['MOD_FILES_JSON'])
+          for file in data:
+              path = file['path']
+              if not path: continue
+              dirname = os.path.dirname(path)
+              if dirname:
+                  os.makedirs(dirname, exist_ok=True)
+              content = file['content']
+              if file.get('encoding') == 'base64':
+                  with open(path, 'wb') as out:
+                      out.write(base64.b64decode(content))
+              else:
+                  with open(path, 'w') as out:
+                      out.write(content)
+          "
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 9.4
+
+      - name: Build with Gradle
+        run: gradle build --stacktrace
+
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.inputs.mod_id }}-built
+          path: build/libs/*.jar
