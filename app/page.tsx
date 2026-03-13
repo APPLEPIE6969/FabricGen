@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { generateModZip } from '@/utils/generator';
 import { FABRIC_TEMPLATES } from '@/utils/templates';
 import { Download, Loader2, Hammer, Code, Zap, Settings, Book, Info, Plus, RotateCcw, Trash2, FileCode, ImageIcon, X, ChevronRight, Binary, ExternalLink, CheckCircle2, AlertCircle, Signal } from 'lucide-react';
-import { account } from '@/utils/appwrite';
+import { account, client } from '@/utils/appwrite';
 
 interface ModFile {
   path: string;
@@ -70,6 +70,19 @@ export default function Home() {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
   }, [building, formData.modId]);
+  
+  // Automatic Appwrite Setup Verification
+  useEffect(() => {
+    const initAppwrite = async () => {
+      try {
+        await client.ping();
+        console.log("Appwrite ping successful");
+      } catch (e) {
+        console.error("Appwrite ping failed:", e);
+      }
+    };
+    initAppwrite();
+  }, []);
 
   const getBaseTemplates = () => {
     const { modId, modName, modVersion, mavenGroup, description } = formData;
