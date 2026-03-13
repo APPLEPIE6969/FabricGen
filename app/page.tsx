@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { generateModZip } from '@/utils/generator';
 import { FABRIC_TEMPLATES } from '@/utils/templates';
-import { Download, Loader2, Hammer, Code, Zap, Settings, Book, Info, Plus, RotateCcw, Trash2, FileCode, ImageIcon, X, ChevronRight, Binary, ExternalLink, CheckCircle2, AlertCircle, Signal } from 'lucide-react';
-import { account, client } from '@/utils/appwrite';
+import { Download, Loader2, Hammer, Code, Zap, Settings, Book, Info, Plus, RotateCcw, Trash2, FileCode, ImageIcon, X, ChevronRight, Binary, ExternalLink, CheckCircle2, AlertCircle, Signal, LogIn } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
+import AuthModal from '@/components/AuthModal';
+import UserMenu from '@/components/UserMenu';
 
 interface ModFile {
   path: string;
@@ -28,6 +30,8 @@ export default function Home() {
     description: 'A mod that adds epic things.',
     prompt: 'Add a new item called "Epic Gem" that gives the player strength when held. Also generate a shiny purple texture for it.',
   });
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const { user } = useAuth();
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -70,18 +74,7 @@ export default function Home() {
     };
   }, [building, formData.modId]);
   
-  // Automatic Appwrite Setup Verification
-  useEffect(() => {
-    const initAppwrite = async () => {
-      try {
-        await client.ping();
-        console.log("Appwrite ping successful");
-      } catch (e) {
-        console.error("Appwrite ping failed:", e);
-      }
-    };
-    initAppwrite();
-  }, []);
+
 
   const getBaseTemplates = () => {
     const { modId, modName, modVersion, mavenGroup, description } = formData;
@@ -233,7 +226,16 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-4">
              <button onClick={handleReset} className="p-2 text-zinc-600 hover:text-orange-500 transition-colors" title="Reset Project"><RotateCcw className="w-5 h-5" /></button>
-             <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-600 font-bold text-xs">AI</div>
+             {user ? (
+               <UserMenu />
+             ) : (
+               <button
+                 onClick={() => setAuthModalOpen(true)}
+                 className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all"
+               >
+                 <LogIn className="w-3.5 h-3.5" /> Sign In
+               </button>
+             )}
           </div>
         </div>
       </nav>
@@ -488,6 +490,7 @@ export default function Home() {
           image-rendering: pixelated;
         }
       `}</style>
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>
   );
 }
