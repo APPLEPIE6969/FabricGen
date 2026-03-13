@@ -1,14 +1,23 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+// Groq models ordered best-to-worst for code generation fallback.
+// If the top model fails (rate limit, overload), it falls through to the next.
 const MODELS = [
-  'openai/gpt-oss-120b',
-  'llama-3.3-70b-versatile',
-  'qwen/qwen3-32b',
-  'openai/gpt-oss-20b',
-  'meta-llama/llama-4-scout-17b-16e-instruct',
-  'llama-3.1-8b-instant',
-  'moonshotai/kimi-k2-instruct-0905'
+  // Tier 1 — Production flagships (best quality)
+  'openai/gpt-oss-120b',       // 120B params, 500 t/s, 65K max output
+  'openai/gpt-oss-20b',        // 20B params, 1000 t/s, 65K max output
+
+  // Tier 2 — Strong preview models
+  'qwen/qwen3-32b',            // 32B params, 400 t/s, 40K max output
+  'moonshotai/kimi-k2-instruct-0905', // 200 t/s, 262K context, 16K max output
+
+  // Tier 3 — Production workhorses
+  'llama-3.3-70b-versatile',   // 70B params, 280 t/s, 32K max output
+
+  // Tier 4 — Lightweight fallbacks (last resort)
+  'meta-llama/llama-4-scout-17b-16e-instruct', // 750 t/s, 8K max output
+  'llama-3.1-8b-instant',      // 8B params, 560 t/s, fastest fallback
 ];
 
 async function generatePixelArt(prompt: string) {
