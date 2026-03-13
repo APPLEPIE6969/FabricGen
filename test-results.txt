@@ -1,0 +1,158 @@
+Testing all models with NO TIME LIMIT...
+--------------------------------------------------\n
+[TESTING] [NVIDIA] moonshotai/kimi-k2.5 (1T MoE)...
+[  OK  ] -> Answered in 1.12s: ""
+---
+[TESTING] [NVIDIA] z-ai/glm-5 (744B MoE)...
+[ FAIL ] -> Failed in 0.06s: 404 Not Found
+---
+[TESTING] [NVIDIA] deepseek-ai/deepseek-v3.2 (685B)...
+[ FAIL ] -> Failed in 60.01s: Request was aborted.
+---
+[TESTING] [NVIDIA] mistralai/mistral-large-3-675b-instruct-2512 (675B)...
+[  OK  ] -> Answered in 0.80s: "SUCCESS"
+---
+[TESTING] [NVIDIA] qwen/qwen3-coder-480b-a35b-instruct (480B MoE (code))...
+[  OK  ] -> Answered in 30.75s: "SUCCESS"
+---
+[TESTING] [OPENROUTER] qwen/qwen3-coder-480b-a35b:free (480B MoE (free))...
+[ FAIL ] -> Failed in 0.19s: 400 Bad Request/Invalid Model
+---
+[TESTING] [OPENROUTER] nousresearch/hermes-3-405b-instruct:free (405B (free))...
+[ FAIL ] -> Failed in 0.05s: 400 Bad Request/Invalid Model
+---
+[TESTING] [NVIDIA] qwen/qwen3.5-397b-a17b (400B MoE)...
+[  OK  ] -> Answered in 1.37s: "SUCCESS"
+---
+[TESTING] [CEREBRAS] zai-glm-4.7 (355B (~1000 t/s))...
+[ FAIL ] -> Failed in 0.21s: 402 Payment Required / Out of Credits
+---
+[TESTING] [NVIDIA] nvidia/llama-3.1-nemotron-ultra-253b-v1 (253B)...
+[  OK  ] -> Answered in 1.76s: ""
+---
+[TESTING] [CEREBRAS] qwen-3-235b-a22b-instruct-2507 (235B (~1400 t/s))...
+[ FAIL ] -> Failed in 0.15s: 402 Payment Required / Out of Credits
+---
+[TESTING] [NVIDIA] minimaxai/minimax-m2.5 (230B)...
+[  OK  ] -> Answered in 2.34s: "<think>The user asks: "Reply exactly with "SUCCESS"
+---
+[TESTING] [NVIDIA] mistralai/devstral-2-123b-instruct-2512 (123B (code))...
+[  OK  ] -> Answered in 0.42s: "SUCCESS"
+---
+[TESTING] [NVIDIA] qwen/qwen3.5-122b-a10b (122B MoE)...
+[ FAIL ] -> Failed in 60.01s: Request was aborted.
+---
+[TESTING] [CEREBRAS] gpt-oss-120b (120B (~3000 t/s))...
+[ FAIL ] -> Failed in 0.22s: 402 Payment Required / Out of Credits
+---
+[TESTING] [GROQ] openai/gpt-oss-120b (120B (Groq))...
+[  OK  ] -> Answered in 0.10s: ""
+---
+[TESTING] [NVIDIA] nvidia/nemotron-3-super-120b-a12b (120B MoE)...
+[  OK  ] -> Answered in 7.84s: ""
+---
+[TESTING] [NVIDIA] qwen/qwen3-next-80b-a3b-instruct (80B MoE)...
+[  OK  ] -> Answered in 0.57s: "SUCCESS"
+---
+[TESTING] [OPENROUTER] qwen/qwen3-next-80b-a3b-instruct:free (80B MoE (free))...
+[ FAIL ] -> Failed in 2.23s: 429 Provider returned error
+---
+[TESTING] [NVIDIA] meta/llama-3.3-70b-instruct (70B)...
+[  OK  ] -> Answered in 1.61s: "SUCCESS"
+---
+[TESTING] [GROQ] llama-3.3-70b-versatile (70B (Groq))...
+[  OK  ] -> Answered in 0.09s: "SUCCESS"
+---
+[TESTING] [OPENROUTER] meta-llama/llama-3.3-70b-instruct:free (70B (free))...
+[ FAIL ] -> Failed in 2.28s: 429 Provider returned error
+---
+[TESTING] [NVIDIA] nvidia/llama-3.3-nemotron-super-49b-v1.5 (49B)...
+[  OK  ] -> Answered in 0.41s: "<think>
+Okay, the user wants me to"
+---
+[TESTING] [NVIDIA] z-ai/glm-4.7 (~40B)...
+[ FAIL ] -> Failed in 0.07s: 404 Not Found
+---
+[TESTING] [OPENROUTER] z-ai/glm-4.5-air:free (~40B (free))...
+[ FAIL ] -> Failed in 5.47s: 429 Provider returned error
+---
+[TESTING] [GROQ] qwen/qwen3-32b (32B)...
+[  OK  ] -> Answered in 0.15s: "<think>
+Okay, the user wants me to reply"
+---
+[TESTING] [NVIDIA] qwen/qwen2.5-coder-32b-instruct (32B (code))...
+[  OK  ] -> Answered in 0.35s: "SUCCESS"
+---
+[TESTING] [NVIDIA] nvidia/nemotron-3-nano-30b-a3b (30B MoE)...
+[  OK  ] -> Answered in 0.36s: ""
+---
+[TESTING] [OPENROUTER] nvidia/nemotron-3-nano-30b-a3b:free (30B MoE (free))...
+[  OK  ] -> Answered in 0.82s: ""
+---
+[TESTING] [NVIDIA] google/gemma-3-27b-it (27B)...
+[  OK  ] -> Answered in 0.31s: "SUCCESS"
+---
+[TESTING] [OPENROUTER] google/gemma-3-27b-it:free (27B (free))...
+[ FAIL ] -> Failed in 1.92s: 429 Provider returned error
+---
+[TESTING] [NVIDIA] mistralai/mistral-small-24b-instruct (24B)...
+[  OK  ] -> Answered in 0.21s: "SUCCESS"
+---
+[TESTING] [OPENROUTER] mistralai/mistral-small-3.1-24b-instruct:free (24B (free))...
+[ FAIL ] -> Failed in 2.38s: 429 Provider returned error
+---
+[TESTING] [GROQ] openai/gpt-oss-20b (20B)...
+[  OK  ] -> Answered in 0.07s: ""
+---
+[TESTING] [OPENROUTER] openai/gpt-oss-20b:free (20B (free))...
+[ FAIL ] -> Failed in 0.03s: 404 Not Found
+---
+[TESTING] [GROQ] moonshotai/kimi-k2-instruct-0905 (~20B MoE)...
+[  OK  ] -> Answered in 0.24s: "SUCCESS"
+---
+[TESTING] [NVIDIA] moonshotai/kimi-k2-instruct-0905 (~20B MoE (NV))...
+[  OK  ] -> Answered in 0.54s: "SUCCESS"
+---
+[TESTING] [GROQ] meta-llama/llama-4-scout-17b-16e-instruct (17B MoE)...
+[  OK  ] -> Answered in 0.06s: "SUCCESS"
+---
+[TESTING] [OPENROUTER] google/gemma-3-12b-it:free (12B (free))...
+[  OK  ] -> Answered in 2.42s: "SUCCESS"
+---
+[TESTING] [NVIDIA] nvidia/nvidia-nemotron-nano-9b-v2 (9B)...
+[  OK  ] -> Answered in 0.38s: ""
+---
+[TESTING] [OPENROUTER] nvidia/nemotron-nano-9b-v2:free (9B (free))...
+[  OK  ] -> Answered in 58.64s: ""
+---
+[TESTING] [CEREBRAS] llama3.1-8b (8B (~2200 t/s))...
+[ FAIL ] -> Failed in 0.18s: 402 Payment Required / Out of Credits
+---
+[TESTING] [GROQ] llama-3.1-8b-instant (8B (Groq))...
+[  OK  ] -> Answered in 0.06s: "SUCCESS"
+---
+[TESTING] [NVIDIA] meta/llama-3.1-8b-instruct (8B (NV))...
+[  OK  ] -> Answered in 0.36s: "SUCCESS"
+---
+[TESTING] [OPENROUTER] qwen/qwen3-4b:free (4B (free))...
+[ FAIL ] -> Failed in 2.73s: 429 Provider returned error
+---
+[TESTING] [OPENROUTER] meta-llama/llama-3.2-3b-instruct:free (3B (free))...
+[ FAIL ] -> Failed in 2.16s: 429 Provider returned error
+---
+\n================= SUMMARY =================
+Ô£à Working: 28
+ÔØî Failed:  18
+ÔÅ¡´©Å Skipped: 0
+
+FASTEST WORKING MODELS:
+- [GROQ] meta-llama/llama-4-scout-17b-16e-instruct: 0.06s
+- [GROQ] llama-3.1-8b-instant: 0.06s
+- [GROQ] openai/gpt-oss-20b: 0.07s
+- [GROQ] llama-3.3-70b-versatile: 0.09s
+- [GROQ] openai/gpt-oss-120b: 0.10s
+- [GROQ] qwen/qwen3-32b: 0.15s
+- [NVIDIA] mistralai/mistral-small-24b-instruct: 0.21s
+- [GROQ] moonshotai/kimi-k2-instruct-0905: 0.24s
+- [NVIDIA] google/gemma-3-27b-it: 0.31s
+- [NVIDIA] qwen/qwen2.5-coder-32b-instruct: 0.35s
