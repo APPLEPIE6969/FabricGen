@@ -1,23 +1,64 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-// Groq models ordered best-to-worst for code generation fallback.
-// If the top model fails (rate limit, overload), it falls through to the next.
-const MODELS = [
-  // Tier 1 — Production flagships (best quality)
-  'openai/gpt-oss-120b',       // 120B params, 500 t/s, 65K max output
-  'openai/gpt-oss-20b',        // 20B params, 1000 t/s, 65K max output
+// ── Provider Configuration ──────────────────────────────────────────────
+// Each provider has its own base URL, API key, and ranked model list.
+// Models are tried in order; if one fails (rate limit, overload, etc.)
+// it falls through to the next. After exhausting a provider, the next
+// provider is attempted.
 
-  // Tier 2 — Strong preview models
-  'qwen/qwen3-32b',            // 32B params, 400 t/s, 40K max output
-  'moonshotai/kimi-k2-instruct-0905', // 200 t/s, 262K context, 16K max output
+interface Provider {
+  name: string;
+  baseURL: string;
+  apiKeyEnv: string;
+  models: string[];
+}
 
-  // Tier 3 — Production workhorses
-  'llama-3.3-70b-versatile',   // 70B params, 280 t/s, 32K max output
+const PROVIDERS: Provider[] = [
+  {
+    name: 'Groq',
+    baseURL: 'https://api.groq.com/openai/v1',
+    apiKeyEnv: 'GROQ_API_KEY',
+    models: [
+      // Tier 1 — Production flagships (best quality)
+      'openai/gpt-oss-120b',       // 120B params, 500 t/s, 65K max output
+      'openai/gpt-oss-20b',        // 20B params, 1000 t/s, 65K max output
 
-  // Tier 4 — Lightweight fallbacks (last resort)
-  'meta-llama/llama-4-scout-17b-16e-instruct', // 750 t/s, 8K max output
-  'llama-3.1-8b-instant',      // 8B params, 560 t/s, fastest fallback
+      // Tier 2 — Strong preview models
+      'qwen/qwen3-32b',            // 32B params, 400 t/s, 40K max output
+      'moonshotai/kimi-k2-instruct-0905', // 200 t/s, 262K context
+
+      // Tier 3 — Production workhorses
+      'llama-3.3-70b-versatile',   // 70B params, 280 t/s, 32K max output
+
+      // Tier 4 — Lightweight fallbacks
+      'meta-llama/llama-4-scout-17b-16e-instruct', // 750 t/s
+      'llama-3.1-8b-instant',      // 8B params, fastest fallback
+    ],
+  },
+  {
+    name: 'NVIDIA',
+    baseURL: 'https://integrate.api.nvidia.com/v1',
+    apiKeyEnv: 'NVIDIA_API_KEY',
+    models: [
+      // Tier 1 — Code-specialist flagships
+      'qwen/qwen3-coder-480b-a35b-instruct',       // 480B MoE, purpose-built for code
+      'mistralai/devstral-2-123b-instruct-2512',    // 123B, state-of-art code model
+
+      // Tier 2 — Large reasoning models
+      'deepseek-ai/deepseek-v3.2',                  // 685B reasoning LLM
+      'mistralai/mistral-large-3-675b-instruct-2512', // 675B general purpose
+
+      // Tier 3 — Strong mid-tier
+      'nvidia/llama-3.1-nemotron-ultra-253b-v1',    // 253B, superior reasoning
+      'qwen/qwen3.5-122b-a10b',                     // 122B MoE
+      'z-ai/glm-4.7',                               // Strong coding & tool use
+
+      // Tier 4 — Lightweight fallbacks
+      'google/gemma-3-27b-it',                       // 27B, fast
+      'meta/llama-3.1-8b-instruct',                  // 8B, last resort
+    ],
+  },
 ];
 
 async function generatePixelArt(prompt: string) {
@@ -57,15 +98,6 @@ async function generatePixelArt(prompt: string) {
 
 export async function POST(req: Request) {
   const { prompt, modId, modName, mavenGroup, currentFiles, baseTemplates } = await req.json();
-
-  if (!process.env.GROQ_API_KEY) {
-    return NextResponse.json({ error: 'GROQ_API_KEY is not set' }, { status: 500 });
-  }
-
-  const groq = new OpenAI({
-    apiKey: process.env.GROQ_API_KEY,
-    baseURL: 'https://api.groq.com/openai/v1',
-  });
 
   const systemPrompt = `You are a world-class Minecraft Fabric 1.21.11 Mod Architect.
 Your goal is to manage the source code and resources for a mod project iteratively.
@@ -112,42 +144,61 @@ Rules:
 - DO NOT explain. Only return the JSON.`;
 
   let lastError = null;
-  for (const model of MODELS) {
-    try {
-      const completion = await groq.chat.completions.create({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: prompt },
-        ],
-        model: model,
-        response_format: { type: 'json_object' },
-      });
 
-      const responseData = JSON.parse(completion.choices[0].message.content || '{"upsert": [], "delete": []}');
-      
-      if (responseData.upsert) {
-        for (const file of responseData.upsert) {
-          if (file.encoding === 'texture_prompt') {
-            console.log(`Generating 16x16 texture for ${file.path} with prompt: ${file.content}`);
-            const base64 = await generatePixelArt(file.content);
-            if (base64) {
-              file.content = base64;
-              file.encoding = 'base64';
-            } else {
-              file.content = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAFklEQVR42mP8z8BQz0AEYBxVMBiYAAAhS6Pz79rv9AAAAABJRU5ErkJggg==";
-              file.encoding = 'base64';
+  // Try each provider in order
+  for (const provider of PROVIDERS) {
+    const apiKey = process.env[provider.apiKeyEnv];
+    if (!apiKey) {
+      console.warn(`${provider.name}: ${provider.apiKeyEnv} not set, skipping`);
+      continue;
+    }
+
+    const client = new OpenAI({
+      apiKey,
+      baseURL: provider.baseURL,
+    });
+
+    // Try each model within this provider
+    for (const model of provider.models) {
+      try {
+        console.log(`Trying ${provider.name} → ${model}...`);
+        const completion = await client.chat.completions.create({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt },
+          ],
+          model: model,
+          response_format: { type: 'json_object' },
+        });
+
+        const responseData = JSON.parse(completion.choices[0].message.content || '{"upsert": [], "delete": []}');
+
+        // Generate pixel art textures if needed
+        if (responseData.upsert) {
+          for (const file of responseData.upsert) {
+            if (file.encoding === 'texture_prompt') {
+              console.log(`Generating 16x16 texture for ${file.path} with prompt: ${file.content}`);
+              const base64 = await generatePixelArt(file.content);
+              if (base64) {
+                file.content = base64;
+                file.encoding = 'base64';
+              } else {
+                file.content = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAFklEQVR42mP8z8BQz0AEYBxVMBiYAAAhS6Pz79rv9AAAAABJRU5ErkJggg==";
+                file.encoding = 'base64';
+              }
             }
           }
         }
-      }
 
-      return NextResponse.json(responseData);
-    } catch (error: any) {
-      console.error(`Failed with model ${model}:`, error);
-      lastError = error;
-      continue;
+        console.log(`✓ Success with ${provider.name} → ${model}`);
+        return NextResponse.json(responseData);
+      } catch (error: any) {
+        console.error(`✗ Failed ${provider.name} → ${model}:`, error.message || error);
+        lastError = error;
+        continue;
+      }
     }
   }
 
-  return NextResponse.json({ error: 'All models failed', details: lastError?.message }, { status: 500 });
+  return NextResponse.json({ error: 'All providers and models failed', details: lastError?.message }, { status: 500 });
 }
