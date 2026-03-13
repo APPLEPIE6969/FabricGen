@@ -6,7 +6,7 @@ import OpenAI from 'openai';
 // Each entry specifies which provider to use. If a model fails (rate
 // limit, overload, missing key), it silently falls through to the next.
 
-type ProviderKey = 'groq' | 'nvidia';
+type ProviderKey = 'groq' | 'nvidia' | 'cerebras';
 
 interface RankedModel {
   provider: ProviderKey;
@@ -15,8 +15,9 @@ interface RankedModel {
 }
 
 const PROVIDER_CONFIG: Record<ProviderKey, { baseURL: string; apiKeyEnv: string }> = {
-  groq:   { baseURL: 'https://api.groq.com/openai/v1',       apiKeyEnv: 'GROQ_API_KEY' },
-  nvidia: { baseURL: 'https://integrate.api.nvidia.com/v1',   apiKeyEnv: 'NVIDIA_API_KEY' },
+  groq:     { baseURL: 'https://api.groq.com/openai/v1',       apiKeyEnv: 'GROQ_API_KEY' },
+  nvidia:   { baseURL: 'https://integrate.api.nvidia.com/v1',   apiKeyEnv: 'NVIDIA_API_KEY' },
+  cerebras: { baseURL: 'https://api.cerebras.ai/v1',            apiKeyEnv: 'CEREBRAS_API_KEY' },
 };
 
 // Single unified list: best → worst across all providers
@@ -30,18 +31,23 @@ const MODELS: RankedModel[] = [
   { provider: 'nvidia', model: 'mistralai/mistral-large-3-675b-instruct-2512', params: '675B' },
 
   // ── 400B–599B ─────────────────────────────────────────────────────────
-  { provider: 'nvidia', model: 'qwen/qwen3-coder-480b-a35b-instruct',         params: '480B MoE (code)' },
-  { provider: 'nvidia', model: 'qwen/qwen3.5-397b-a17b',                       params: '400B MoE' },
+  { provider: 'nvidia',   model: 'qwen/qwen3-coder-480b-a35b-instruct',         params: '480B MoE (code)' },
+  { provider: 'nvidia',   model: 'qwen/qwen3.5-397b-a17b',                       params: '400B MoE' },
 
-  // ── 200B–399B ─────────────────────────────────────────────────────────
-  { provider: 'nvidia', model: 'nvidia/llama-3.1-nemotron-ultra-253b-v1',      params: '253B' },
-  { provider: 'nvidia', model: 'minimaxai/minimax-m2.5',                        params: '230B' },
+  // ── 300B–399B ─────────────────────────────────────────────────────────
+  { provider: 'cerebras', model: 'zai-glm-4.7',                                  params: '355B (~1000 t/s)' },
+
+  // ── 200B–299B ─────────────────────────────────────────────────────────
+  { provider: 'nvidia',   model: 'nvidia/llama-3.1-nemotron-ultra-253b-v1',      params: '253B' },
+  { provider: 'cerebras', model: 'qwen-3-235b-a22b-instruct-2507',               params: '235B (~1400 t/s)' },
+  { provider: 'nvidia',   model: 'minimaxai/minimax-m2.5',                        params: '230B' },
 
   // ── 100B–199B ─────────────────────────────────────────────────────────
-  { provider: 'nvidia', model: 'mistralai/devstral-2-123b-instruct-2512',      params: '123B (code)' },
-  { provider: 'nvidia', model: 'qwen/qwen3.5-122b-a10b',                       params: '122B MoE' },
-  { provider: 'groq',  model: 'openai/gpt-oss-120b',                           params: '120B' },
-  { provider: 'nvidia', model: 'nvidia/nemotron-3-super-120b-a12b',            params: '120B MoE' },
+  { provider: 'nvidia',   model: 'mistralai/devstral-2-123b-instruct-2512',      params: '123B (code)' },
+  { provider: 'nvidia',   model: 'qwen/qwen3.5-122b-a10b',                       params: '122B MoE' },
+  { provider: 'cerebras', model: 'gpt-oss-120b',                                  params: '120B (~3000 t/s)' },
+  { provider: 'groq',     model: 'openai/gpt-oss-120b',                           params: '120B (Groq)' },
+  { provider: 'nvidia',   model: 'nvidia/nemotron-3-super-120b-a12b',            params: '120B MoE' },
 
   // ── 50B–99B ───────────────────────────────────────────────────────────
   { provider: 'nvidia', model: 'qwen/qwen3-next-80b-a3b-instruct',            params: '80B MoE' },
@@ -63,8 +69,9 @@ const MODELS: RankedModel[] = [
   { provider: 'nvidia', model: 'moonshotai/kimi-k2-instruct-0905',            params: '~20B MoE (NV)' },
 
   // ── <20B (lightweight fallbacks) ──────────────────────────────────────
-  { provider: 'groq',  model: 'meta-llama/llama-4-scout-17b-16e-instruct',    params: '17B MoE' },
-  { provider: 'nvidia', model: 'nvidia/nvidia-nemotron-nano-9b-v2',           params: '9B' },
+  { provider: 'groq',     model: 'meta-llama/llama-4-scout-17b-16e-instruct',    params: '17B MoE' },
+  { provider: 'nvidia',   model: 'nvidia/nvidia-nemotron-nano-9b-v2',           params: '9B' },
+  { provider: 'cerebras', model: 'llama3.1-8b',                                  params: '8B (~2200 t/s)' },
   { provider: 'groq',  model: 'llama-3.1-8b-instant',                          params: '8B (Groq)' },
   { provider: 'nvidia', model: 'meta/llama-3.1-8b-instruct',                  params: '8B (NV)' },
 ];
