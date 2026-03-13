@@ -16,8 +16,8 @@ export async function POST(req: Request) {
     // Create a session using the Appwrite Account API
     // We need a client-scope session, so we use the Account service directly
     const client = new Client()
-      .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || '')
-      .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '');
+      .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT?.replace(/\/+$/, '') || 'https://fra.cloud.appwrite.io/v1')
+      .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '69af5ae2000dfd855871');
 
     const account = new Account(client);
 

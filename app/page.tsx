@@ -287,7 +287,7 @@ export default function Home() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-2 min-w-[200px] bg-zinc-100 hover:bg-white text-zinc-950 font-black py-5 px-8 rounded-2xl flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-white/5"
+                  className="flex-2 min-w-[200px] bg-zinc-100 hover:bg-white text-zinc-950 font-black py-5 px-8 rounded-2xl flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-white/5 cursor-pointer"
                 >
                   {loading ? (
                     <Loader2 className="w-6 h-6 animate-spin" />

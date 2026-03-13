@@ -30,7 +30,7 @@ export default function UserMenu() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1 rounded-xl hover:bg-zinc-800/50 transition-colors"
+        className="flex items-center gap-2 p-1 rounded-xl hover:bg-zinc-800/50 transition-colors cursor-pointer"
       >
         <div className="w-9 h-9 rounded-xl bg-linear-to-br from-orange-500 to-orange-700 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-orange-900/20">
           {initials}
@@ -69,7 +69,7 @@ export default function UserMenu() {
                 await logout();
                 setIsOpen(false);
               }}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-zinc-800/50 transition-colors w-full text-left"
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-zinc-800/50 transition-colors w-full text-left cursor-pointer"
             >
               <LogOut className="w-4 h-4" /> Sign Out
             </button>

@@ -5,8 +5,8 @@ import { Client, Databases, Users, Account, Query } from 'node-appwrite';
 // all collections, etc.). Only use in API routes, NEVER on the client.
 
 const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || '')
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '')
+  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT?.replace(/\/+$/, '') || 'https://fra.cloud.appwrite.io/v1')
+  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '69af5ae2000dfd855871')
   .setKey(process.env.APPWRITE_API_KEY || '');
 
 const databases = new Databases(client);
@@ -24,8 +24,8 @@ export const COLLECTIONS = {
 // For verifying the logged-in user from a session token passed via cookie.
 export function createSessionClient(sessionToken: string) {
   const sessionClient = new Client()
-    .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || '')
-    .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '')
+    .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT?.replace(/\/+$/, '') || 'https://fra.cloud.appwrite.io/v1')
+    .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '69af5ae2000dfd855871')
     .setSession(sessionToken);
 
   return {
