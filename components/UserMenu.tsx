@@ -32,7 +32,7 @@ export default function UserMenu() {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 p-1 rounded-xl hover:bg-zinc-800/50 transition-colors"
       >
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-orange-900/20">
+        <div className="w-9 h-9 rounded-xl bg-linear-to-br from-orange-500 to-orange-700 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-orange-900/20">
           {initials}
         </div>
         <ChevronDown className={`w-3.5 h-3.5 text-zinc-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />

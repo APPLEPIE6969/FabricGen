@@ -51,7 +51,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div className="fixed inset-0 z-100 flex items-center justify-center">
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
@@ -61,7 +61,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
           {/* Header */}
           <div className="px-8 pt-8 pb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-orange-500 to-orange-700 p-2.5 rounded-xl">
+              <div className="bg-linear-to-br from-orange-500 to-orange-700 p-2.5 rounded-xl">
                 {mode === 'login' ? (
                   <LogIn className="w-5 h-5 text-white" />
                 ) : (
@@ -147,7 +147,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-black text-sm py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+              className="w-full bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-black text-sm py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

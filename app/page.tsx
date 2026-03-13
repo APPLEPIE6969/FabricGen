@@ -213,7 +213,7 @@ export default function Home() {
       <nav className="border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-orange-500 to-orange-700 p-2 rounded-xl shadow-lg shadow-orange-900/20">
+            <div className="bg-linear-to-br from-orange-500 to-orange-700 p-2 rounded-xl shadow-lg shadow-orange-900/20">
               <Hammer className="w-5 h-5 text-white" />
             </div>
             <span className="font-black text-xl tracking-tighter uppercase">FabricGen</span>
@@ -231,7 +231,7 @@ export default function Home() {
              ) : (
                <button
                  onClick={() => setAuthModalOpen(true)}
-                 className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all"
+                 className="flex items-center gap-2 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all"
                >
                  <LogIn className="w-3.5 h-3.5" /> Sign In
                </button>
@@ -253,7 +253,7 @@ export default function Home() {
           </header>
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            <section className="bg-zinc-900/20 border border-zinc-900 p-8 rounded-[2rem] space-y-8 shadow-inner shadow-black/20">
+            <section className="bg-zinc-900/20 border border-zinc-900 p-8 rounded-4xl space-y-8 shadow-inner shadow-black/20">
               <div className="flex items-center gap-2 text-zinc-600 uppercase text-[10px] font-black tracking-widest">
                 <Settings className="w-4 h-4" /> Core Manifest
               </div>
@@ -277,7 +277,7 @@ export default function Home() {
                   value={formData.prompt}
                   onChange={handleChange}
                   rows={5}
-                  className="w-full bg-zinc-900 border border-zinc-900 rounded-[2rem] px-8 py-8 focus:ring-2 focus:ring-orange-600/20 outline-none transition-all resize-none font-medium text-lg leading-relaxed placeholder:text-zinc-800 shadow-inner shadow-black/20"
+                  className="w-full bg-zinc-900 border border-zinc-900 rounded-4xl px-8 py-8 focus:ring-2 focus:ring-orange-600/20 outline-none transition-all resize-none font-medium text-lg leading-relaxed placeholder:text-zinc-800 shadow-inner shadow-black/20"
                   placeholder="Ask to add items, blocks, logic, or textures..."
                   required
                 />
@@ -287,7 +287,7 @@ export default function Home() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-[2] min-w-[200px] bg-zinc-100 hover:bg-white text-zinc-950 font-black py-5 px-8 rounded-2xl flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-white/5"
+                  className="flex-2 min-w-[200px] bg-zinc-100 hover:bg-white text-zinc-950 font-black py-5 px-8 rounded-2xl flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-white/5"
                 >
                   {loading ? (
                     <Loader2 className="w-6 h-6 animate-spin" />
@@ -333,7 +333,7 @@ export default function Home() {
               </div>
 
               {(building || buildStatus) && (
-                <div className="space-y-4 p-6 bg-zinc-900/40 border border-zinc-900 rounded-[2rem] animate-in slide-in-from-top-4 duration-500">
+                <div className="space-y-4 p-6 bg-zinc-900/40 border border-zinc-900 rounded-4xl animate-in slide-in-from-top-4 duration-500">
                   <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
                     <span className="text-zinc-500 flex items-center gap-2">
                       {buildStatus?.status === 'completed' ? (
@@ -423,7 +423,7 @@ export default function Home() {
 
       {/* File Inspector Modal */}
       {selectedFile && (
-        <div className="fixed inset-0 z-[100] bg-zinc-950/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-100 bg-zinc-950/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className="w-full max-w-5xl h-[80vh] bg-zinc-900 border border-zinc-800 rounded-[2.5rem] flex flex-col shadow-2xl shadow-black">
             <header className="p-8 border-b border-zinc-800 flex items-center justify-between">
                <div className="flex items-center gap-4">
@@ -442,7 +442,7 @@ export default function Home() {
             <div className="flex-1 overflow-auto p-8 custom-scrollbar">
               {selectedFile.encoding === 'base64' ? (
                 <div className="h-full flex flex-col items-center justify-center space-y-6">
-                   <div className="w-48 h-48 bg-zinc-950 border-4 border-zinc-800 rounded-[2rem] flex items-center justify-center overflow-hidden shadow-inner shadow-black p-8">
+                   <div className="w-48 h-48 bg-zinc-950 border-4 border-zinc-800 rounded-4xl flex items-center justify-center overflow-hidden shadow-inner shadow-black p-8">
                       <img 
                         src={`data:image/png;base64,${selectedFile.content}`} 
                         alt="Texture Preview" 

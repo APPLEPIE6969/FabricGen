@@ -118,7 +118,7 @@ export default function SettingsPage() {
           </div>
           <button
             onClick={() => setAuthModalOpen(true)}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all"
+            className="inline-flex items-center gap-2 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all"
           >
             <LogIn className="w-4 h-4" /> Sign In
           </button>
@@ -135,7 +135,7 @@ export default function SettingsPage() {
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div className="bg-gradient-to-br from-orange-500 to-orange-700 p-2 rounded-xl shadow-lg shadow-orange-900/20">
+              <div className="bg-linear-to-br from-orange-500 to-orange-700 p-2 rounded-xl shadow-lg shadow-orange-900/20">
                 <Hammer className="w-5 h-5 text-white" />
               </div>
               <span className="font-black text-xl tracking-tighter uppercase">FabricGen</span>

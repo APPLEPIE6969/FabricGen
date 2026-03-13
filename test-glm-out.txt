@@ -1,7 +1,0 @@
-content: null
-reasoning_content: The user is asking for a specific JSON output: `{"test": "value"}`.
-This is a very simple, benign request. There are no complex instructions, no prompts trying to get me to reveal my system instructions, and no harmful content. It's just a formatting request.
-
-I need to ensure the output is exactly as requested, wrapped in a code block or just plain text depending on typical AI behavior, but usually, returning the JSON directly is the goal.
-
-Wait, looking at the
