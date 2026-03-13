@@ -204,16 +204,6 @@ export default function Home() {
     }
   };
 
-  const handlePingAppwrite = async () => {
-    setAppwriteStatus('pinging');
-    try {
-      await account.get();
-      setAppwriteStatus('online');
-    } catch (error) {
-      console.error("Appwrite ping failed:", error);
-      setAppwriteStatus('error');
-    }
-  };
 
   const removeFile = (path: string, e: React.MouseEvent) => {
     e.stopPropagation();
