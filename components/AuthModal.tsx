@@ -56,7 +56,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-md mx-4">
+      <div className="relative z-10 w-full max-w-md mx-4 animate-in fade-in zoom-in-95 duration-200">
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
           {/* Header */}
           <div className="px-8 pt-8 pb-4 flex items-center justify-between">
@@ -147,7 +147,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-black text-sm py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+              className="w-full bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-black text-sm py-3.5 rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

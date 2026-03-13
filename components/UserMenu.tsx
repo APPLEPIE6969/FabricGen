@@ -39,7 +39,7 @@ export default function UserMenu() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-64 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50">
+        <div className="absolute right-0 top-full mt-2 w-64 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
           {/* User Info */}
           <div className="px-4 py-3 border-b border-zinc-800">
             <p className="text-sm font-bold text-zinc-100 truncate">{user.name || 'User'}</p>

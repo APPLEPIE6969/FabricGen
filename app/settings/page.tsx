@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
-import { Settings, User, Palette, Save, Loader2, Check, Hammer, LogIn, ArrowLeft } from 'lucide-react';
+import { Settings, User, Palette, Save, Loader2, Check, Hammer, LogIn, ChevronDown } from 'lucide-react';
 import AuthModal from '@/components/AuthModal';
 import UserMenu from '@/components/UserMenu';
 import Link from 'next/link';
@@ -29,6 +29,17 @@ export default function SettingsPage() {
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [error, setError] = useState('');
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [isVersionDropdownOpen, setIsVersionDropdownOpen] = useState(false);
+  
+  const minecraftVersions = [
+    { value: '1.21.11', label: '1.21.11 (Latest)' },
+    { value: '1.21.4', label: '1.21.4' },
+    { value: '1.21.3', label: '1.21.3' },
+    { value: '1.21.1', label: '1.21.1' },
+    { value: '1.21', label: '1.21' },
+    { value: '1.20.6', label: '1.20.6' },
+    { value: '1.20.4', label: '1.20.4' }
+  ];
 
   useEffect(() => {
     if (!user) return;
@@ -118,7 +129,7 @@ export default function SettingsPage() {
           </div>
           <button
             onClick={() => setAuthModalOpen(true)}
-            className="inline-flex items-center gap-2 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all"
+            className="inline-flex items-center gap-2 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all active:scale-95"
           >
             <LogIn className="w-4 h-4" /> Sign In
           </button>
@@ -197,7 +208,7 @@ export default function SettingsPage() {
                   <button
                     onClick={saveProfile}
                     disabled={savingProfile}
-                    className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-bold text-xs px-5 py-2.5 rounded-xl transition-all disabled:opacity-50"
+                    className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-bold text-xs px-5 py-2.5 rounded-xl transition-all active:scale-95 disabled:opacity-50"
                   >
                     {savingProfile ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -239,25 +250,41 @@ export default function SettingsPage() {
                   <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">
                     Default Minecraft Version
                   </label>
-                  <select
-                    value={settings.default_minecraft_version}
-                    onChange={(e) => setSettings({ ...settings, default_minecraft_version: e.target.value })}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 transition-all"
-                  >
-                    <option value="1.21.11">1.21.11 (Latest)</option>
-                    <option value="1.21.4">1.21.4</option>
-                    <option value="1.21.3">1.21.3</option>
-                    <option value="1.21.1">1.21.1</option>
-                    <option value="1.21">1.21</option>
-                    <option value="1.20.6">1.20.6</option>
-                    <option value="1.20.4">1.20.4</option>
-                  </select>
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsVersionDropdownOpen(!isVersionDropdownOpen)}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 transition-all flex items-center justify-between hover:bg-zinc-900 active:scale-[0.99]"
+                    >
+                      {minecraftVersions.find(v => v.value === settings.default_minecraft_version)?.label || settings.default_minecraft_version}
+                      <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform ${isVersionDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isVersionDropdownOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                        {minecraftVersions.map((version) => (
+                          <button
+                            key={version.value}
+                            onClick={() => {
+                              setSettings({ ...settings, default_minecraft_version: version.value });
+                              setIsVersionDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 text-sm transition-colors hover:bg-zinc-800 ${
+                              settings.default_minecraft_version === version.value 
+                                ? 'text-orange-500 font-bold bg-orange-500/10' 
+                                : 'text-zinc-300'
+                            }`}
+                          >
+                            {version.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex justify-end">
                   <button
                     onClick={saveSettings}
                     disabled={savingSettings}
-                    className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-bold text-xs px-5 py-2.5 rounded-xl transition-all disabled:opacity-50"
+                    className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-bold text-xs px-5 py-2.5 rounded-xl transition-all active:scale-95 disabled:opacity-50"
                   >
                     {savingSettings ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />

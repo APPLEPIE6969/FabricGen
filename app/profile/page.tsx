@@ -87,7 +87,7 @@ export default function ProfilePage() {
           </div>
           <button
             onClick={() => setAuthModalOpen(true)}
-            className="inline-flex items-center gap-2 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all"
+            className="inline-flex items-center gap-2 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all active:scale-95"
           >
             <LogIn className="w-4 h-4" /> Sign In
           </button>
