@@ -6,7 +6,7 @@ import OpenAI from 'openai';
 // Each entry specifies which provider to use. If a model fails (rate
 // limit, overload, missing key), it silently falls through to the next.
 
-type ProviderKey = 'groq' | 'nvidia' | 'cerebras';
+type ProviderKey = 'groq' | 'nvidia' | 'cerebras' | 'openrouter';
 
 interface RankedModel {
   provider: ProviderKey;
@@ -15,9 +15,10 @@ interface RankedModel {
 }
 
 const PROVIDER_CONFIG: Record<ProviderKey, { baseURL: string; apiKeyEnv: string }> = {
-  groq:     { baseURL: 'https://api.groq.com/openai/v1',       apiKeyEnv: 'GROQ_API_KEY' },
-  nvidia:   { baseURL: 'https://integrate.api.nvidia.com/v1',   apiKeyEnv: 'NVIDIA_API_KEY' },
-  cerebras: { baseURL: 'https://api.cerebras.ai/v1',            apiKeyEnv: 'CEREBRAS_API_KEY' },
+  groq:       { baseURL: 'https://api.groq.com/openai/v1',       apiKeyEnv: 'GROQ_API_KEY' },
+  nvidia:     { baseURL: 'https://integrate.api.nvidia.com/v1',   apiKeyEnv: 'NVIDIA_API_KEY' },
+  cerebras:   { baseURL: 'https://api.cerebras.ai/v1',            apiKeyEnv: 'CEREBRAS_API_KEY' },
+  openrouter: { baseURL: 'https://openrouter.ai/api/v1',          apiKeyEnv: 'OPENROUTER_API_KEY' },
 };
 
 // Single unified list: best → worst across all providers
@@ -31,8 +32,10 @@ const MODELS: RankedModel[] = [
   { provider: 'nvidia', model: 'mistralai/mistral-large-3-675b-instruct-2512', params: '675B' },
 
   // ── 400B–599B ─────────────────────────────────────────────────────────
-  { provider: 'nvidia',   model: 'qwen/qwen3-coder-480b-a35b-instruct',         params: '480B MoE (code)' },
-  { provider: 'nvidia',   model: 'qwen/qwen3.5-397b-a17b',                       params: '400B MoE' },
+  { provider: 'nvidia',     model: 'qwen/qwen3-coder-480b-a35b-instruct',         params: '480B MoE (code)' },
+  { provider: 'openrouter', model: 'qwen/qwen3-coder-480b-a35b:free',              params: '480B MoE (free)' },
+  { provider: 'openrouter', model: 'nousresearch/hermes-3-405b-instruct:free',     params: '405B (free)' },
+  { provider: 'nvidia',     model: 'qwen/qwen3.5-397b-a17b',                       params: '400B MoE' },
 
   // ── 300B–399B ─────────────────────────────────────────────────────────
   { provider: 'cerebras', model: 'zai-glm-4.7',                                  params: '355B (~1000 t/s)' },
@@ -50,30 +53,41 @@ const MODELS: RankedModel[] = [
   { provider: 'nvidia',   model: 'nvidia/nemotron-3-super-120b-a12b',            params: '120B MoE' },
 
   // ── 50B–99B ───────────────────────────────────────────────────────────
-  { provider: 'nvidia', model: 'qwen/qwen3-next-80b-a3b-instruct',            params: '80B MoE' },
-  { provider: 'nvidia', model: 'meta/llama-3.3-70b-instruct',                  params: '70B' },
-  { provider: 'groq',  model: 'llama-3.3-70b-versatile',                       params: '70B (Groq)' },
-  { provider: 'nvidia', model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5',    params: '49B' },
+  { provider: 'nvidia',     model: 'qwen/qwen3-next-80b-a3b-instruct',            params: '80B MoE' },
+  { provider: 'openrouter', model: 'qwen/qwen3-next-80b-a3b-instruct:free',       params: '80B MoE (free)' },
+  { provider: 'nvidia',     model: 'meta/llama-3.3-70b-instruct',                  params: '70B' },
+  { provider: 'groq',       model: 'llama-3.3-70b-versatile',                      params: '70B (Groq)' },
+  { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free',       params: '70B (free)' },
+  { provider: 'nvidia',     model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5',    params: '49B' },
 
   // ── 30B–49B ───────────────────────────────────────────────────────────
-  { provider: 'nvidia', model: 'z-ai/glm-4.7',                                 params: '~40B' },
-  { provider: 'groq',  model: 'qwen/qwen3-32b',                                params: '32B' },
-  { provider: 'nvidia', model: 'qwen/qwen2.5-coder-32b-instruct',             params: '32B (code)' },
-  { provider: 'nvidia', model: 'nvidia/nemotron-3-nano-30b-a3b',              params: '30B MoE' },
+  { provider: 'nvidia',     model: 'z-ai/glm-4.7',                                 params: '~40B' },
+  { provider: 'openrouter', model: 'z-ai/glm-4.5-air:free',                        params: '~40B (free)' },
+  { provider: 'groq',       model: 'qwen/qwen3-32b',                               params: '32B' },
+  { provider: 'nvidia',     model: 'qwen/qwen2.5-coder-32b-instruct',             params: '32B (code)' },
+  { provider: 'nvidia',     model: 'nvidia/nemotron-3-nano-30b-a3b',              params: '30B MoE' },
+  { provider: 'openrouter', model: 'nvidia/nemotron-3-nano-30b-a3b:free',          params: '30B MoE (free)' },
 
   // ── 20B–29B ───────────────────────────────────────────────────────────
-  { provider: 'nvidia', model: 'google/gemma-3-27b-it',                        params: '27B' },
-  { provider: 'nvidia', model: 'mistralai/mistral-small-24b-instruct',        params: '24B' },
-  { provider: 'groq',  model: 'openai/gpt-oss-20b',                            params: '20B' },
-  { provider: 'groq',  model: 'moonshotai/kimi-k2-instruct-0905',             params: '~20B MoE' },
-  { provider: 'nvidia', model: 'moonshotai/kimi-k2-instruct-0905',            params: '~20B MoE (NV)' },
+  { provider: 'nvidia',     model: 'google/gemma-3-27b-it',                        params: '27B' },
+  { provider: 'openrouter', model: 'google/gemma-3-27b-it:free',                   params: '27B (free)' },
+  { provider: 'nvidia',     model: 'mistralai/mistral-small-24b-instruct',        params: '24B' },
+  { provider: 'openrouter', model: 'mistralai/mistral-small-3.1-24b-instruct:free', params: '24B (free)' },
+  { provider: 'groq',       model: 'openai/gpt-oss-20b',                           params: '20B' },
+  { provider: 'openrouter', model: 'openai/gpt-oss-20b:free',                      params: '20B (free)' },
+  { provider: 'groq',       model: 'moonshotai/kimi-k2-instruct-0905',             params: '~20B MoE' },
+  { provider: 'nvidia',     model: 'moonshotai/kimi-k2-instruct-0905',            params: '~20B MoE (NV)' },
 
   // ── <20B (lightweight fallbacks) ──────────────────────────────────────
-  { provider: 'groq',     model: 'meta-llama/llama-4-scout-17b-16e-instruct',    params: '17B MoE' },
-  { provider: 'nvidia',   model: 'nvidia/nvidia-nemotron-nano-9b-v2',           params: '9B' },
-  { provider: 'cerebras', model: 'llama3.1-8b',                                  params: '8B (~2200 t/s)' },
-  { provider: 'groq',  model: 'llama-3.1-8b-instant',                          params: '8B (Groq)' },
-  { provider: 'nvidia', model: 'meta/llama-3.1-8b-instruct',                  params: '8B (NV)' },
+  { provider: 'groq',       model: 'meta-llama/llama-4-scout-17b-16e-instruct',    params: '17B MoE' },
+  { provider: 'openrouter', model: 'google/gemma-3-12b-it:free',                   params: '12B (free)' },
+  { provider: 'nvidia',     model: 'nvidia/nvidia-nemotron-nano-9b-v2',           params: '9B' },
+  { provider: 'openrouter', model: 'nvidia/nemotron-nano-9b-v2:free',              params: '9B (free)' },
+  { provider: 'cerebras',   model: 'llama3.1-8b',                                  params: '8B (~2200 t/s)' },
+  { provider: 'groq',       model: 'llama-3.1-8b-instant',                         params: '8B (Groq)' },
+  { provider: 'nvidia',     model: 'meta/llama-3.1-8b-instruct',                  params: '8B (NV)' },
+  { provider: 'openrouter', model: 'qwen/qwen3-4b:free',                           params: '4B (free)' },
+  { provider: 'openrouter', model: 'meta-llama/llama-3.2-3b-instruct:free',        params: '3B (free)' },
 ];
 
 // ── Pixel Art Generator ─────────────────────────────────────────────────
