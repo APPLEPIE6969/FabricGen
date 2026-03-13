@@ -41,23 +41,37 @@ const PROVIDERS: Provider[] = [
     baseURL: 'https://integrate.api.nvidia.com/v1',
     apiKeyEnv: 'NVIDIA_API_KEY',
     models: [
-      // Tier 1 — Code-specialist flagships
-      'z-ai/glm-5',                                 // 744B MoE, deep reasoning
-      'qwen/qwen3-coder-480b-a35b-instruct',       // 480B MoE, purpose-built for code
-      'mistralai/devstral-2-123b-instruct-2512',    // 123B, state-of-art code model
-
-      // Tier 2 — Large reasoning models
-      'deepseek-ai/deepseek-v3.2',                  // 685B reasoning LLM
+      // Tier 1 — Massive flagships (best quality, may not all be hosted)
+      'moonshotai/kimi-k2.5',                        // 1T MoE, biggest model available
+      'z-ai/glm-5',                                  // 744B MoE, deep reasoning
+      'deepseek-ai/deepseek-v3.2',                   // 685B reasoning LLM
       'mistralai/mistral-large-3-675b-instruct-2512', // 675B general purpose
+      'qwen/qwen3-coder-480b-a35b-instruct',        // 480B MoE, purpose-built for code
+      'qwen/qwen3.5-397b-a17b',                      // 400B MoE VLM
 
-      // Tier 3 — Strong mid-tier
-      'nvidia/llama-3.1-nemotron-ultra-253b-v1',    // 253B, superior reasoning
-      'qwen/qwen3.5-122b-a10b',                     // 122B MoE
-      'z-ai/glm-4.7',                               // Strong coding & tool use
+      // Tier 2 — Strong upper-mid (excellent for code)
+      'nvidia/llama-3.1-nemotron-ultra-253b-v1',     // 253B, superior reasoning
+      'minimaxai/minimax-m2.5',                       // 230B, excels in coding
+      'mistralai/devstral-2-123b-instruct-2512',     // 123B, state-of-art code model
+      'qwen/qwen3.5-122b-a10b',                      // 122B MoE
+      'nvidia/nemotron-3-super-120b-a12b',            // 120B hybrid Mamba-Transformer MoE
 
-      // Tier 4 — Lightweight fallbacks
-      'google/gemma-3-27b-it',                       // 27B, fast
-      'meta/llama-3.1-8b-instruct',                  // 8B, last resort
+      // Tier 3 — Reliable mid-tier
+      'qwen/qwen3-next-80b-a3b-instruct',            // 80B efficient MoE
+      'meta/llama-3.3-70b-instruct',                  // 70B production workhorse
+      'nvidia/llama-3.3-nemotron-super-49b-v1.5',    // 49B high-accuracy reasoning
+      'z-ai/glm-4.7',                                // Strong coding & tool use
+      'moonshotai/kimi-k2-instruct-0905',             // Enhanced reasoning, 256K context
+
+      // Tier 4 — Code-focused specialists
+      'qwen/qwen2.5-coder-32b-instruct',             // 32B, multi-language code gen
+      'nvidia/nemotron-3-nano-30b-a3b',               // 30B efficient MoE, 1M context
+      'google/gemma-3-27b-it',                        // 27B, fast multimodal
+      'mistralai/mistral-small-24b-instruct',         // 24B, code & math
+
+      // Tier 5 — Lightweight last-resort fallbacks
+      'nvidia/nvidia-nemotron-nano-9b-v2',            // 9B hybrid, edge-friendly
+      'meta/llama-3.1-8b-instruct',                   // 8B, fastest fallback
     ],
   },
 ];
