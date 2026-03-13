@@ -1,81 +1,75 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-// ── Provider Configuration ──────────────────────────────────────────────
-// Each provider has its own base URL, API key, and ranked model list.
-// Models are tried in order; if one fails (rate limit, overload, etc.)
-// it falls through to the next. After exhausting a provider, the next
-// provider is attempted.
+// ── Unified Model Ranking ───────────────────────────────────────────────
+// Models from ALL providers in a single list, ranked best → worst.
+// Each entry specifies which provider to use. If a model fails (rate
+// limit, overload, missing key), it silently falls through to the next.
 
-interface Provider {
-  name: string;
-  baseURL: string;
-  apiKeyEnv: string;
-  models: string[];
+type ProviderKey = 'groq' | 'nvidia';
+
+interface RankedModel {
+  provider: ProviderKey;
+  model: string;
+  params: string; // human-readable size for logging
 }
 
-const PROVIDERS: Provider[] = [
-  {
-    name: 'Groq',
-    baseURL: 'https://api.groq.com/openai/v1',
-    apiKeyEnv: 'GROQ_API_KEY',
-    models: [
-      // Tier 1 — Production flagships (best quality)
-      'openai/gpt-oss-120b',       // 120B params, 500 t/s, 65K max output
-      'openai/gpt-oss-20b',        // 20B params, 1000 t/s, 65K max output
+const PROVIDER_CONFIG: Record<ProviderKey, { baseURL: string; apiKeyEnv: string }> = {
+  groq:   { baseURL: 'https://api.groq.com/openai/v1',       apiKeyEnv: 'GROQ_API_KEY' },
+  nvidia: { baseURL: 'https://integrate.api.nvidia.com/v1',   apiKeyEnv: 'NVIDIA_API_KEY' },
+};
 
-      // Tier 2 — Strong preview models
-      'qwen/qwen3-32b',            // 32B params, 400 t/s, 40K max output
-      'moonshotai/kimi-k2-instruct-0905', // 200 t/s, 262K context
+// Single unified list: best → worst across all providers
+const MODELS: RankedModel[] = [
+  // ── 1000B+ ────────────────────────────────────────────────────────────
+  { provider: 'nvidia', model: 'moonshotai/kimi-k2.5',                         params: '1T MoE' },
 
-      // Tier 3 — Production workhorses
-      'llama-3.3-70b-versatile',   // 70B params, 280 t/s, 32K max output
+  // ── 600B–999B ─────────────────────────────────────────────────────────
+  { provider: 'nvidia', model: 'z-ai/glm-5',                                   params: '744B MoE' },
+  { provider: 'nvidia', model: 'deepseek-ai/deepseek-v3.2',                    params: '685B' },
+  { provider: 'nvidia', model: 'mistralai/mistral-large-3-675b-instruct-2512', params: '675B' },
 
-      // Tier 4 — Lightweight fallbacks
-      'meta-llama/llama-4-scout-17b-16e-instruct', // 750 t/s
-      'llama-3.1-8b-instant',      // 8B params, fastest fallback
-    ],
-  },
-  {
-    name: 'NVIDIA',
-    baseURL: 'https://integrate.api.nvidia.com/v1',
-    apiKeyEnv: 'NVIDIA_API_KEY',
-    models: [
-      // Tier 1 — Massive flagships (best quality, may not all be hosted)
-      'moonshotai/kimi-k2.5',                        // 1T MoE, biggest model available
-      'z-ai/glm-5',                                  // 744B MoE, deep reasoning
-      'deepseek-ai/deepseek-v3.2',                   // 685B reasoning LLM
-      'mistralai/mistral-large-3-675b-instruct-2512', // 675B general purpose
-      'qwen/qwen3-coder-480b-a35b-instruct',        // 480B MoE, purpose-built for code
-      'qwen/qwen3.5-397b-a17b',                      // 400B MoE VLM
+  // ── 400B–599B ─────────────────────────────────────────────────────────
+  { provider: 'nvidia', model: 'qwen/qwen3-coder-480b-a35b-instruct',         params: '480B MoE (code)' },
+  { provider: 'nvidia', model: 'qwen/qwen3.5-397b-a17b',                       params: '400B MoE' },
 
-      // Tier 2 — Strong upper-mid (excellent for code)
-      'nvidia/llama-3.1-nemotron-ultra-253b-v1',     // 253B, superior reasoning
-      'minimaxai/minimax-m2.5',                       // 230B, excels in coding
-      'mistralai/devstral-2-123b-instruct-2512',     // 123B, state-of-art code model
-      'qwen/qwen3.5-122b-a10b',                      // 122B MoE
-      'nvidia/nemotron-3-super-120b-a12b',            // 120B hybrid Mamba-Transformer MoE
+  // ── 200B–399B ─────────────────────────────────────────────────────────
+  { provider: 'nvidia', model: 'nvidia/llama-3.1-nemotron-ultra-253b-v1',      params: '253B' },
+  { provider: 'nvidia', model: 'minimaxai/minimax-m2.5',                        params: '230B' },
 
-      // Tier 3 — Reliable mid-tier
-      'qwen/qwen3-next-80b-a3b-instruct',            // 80B efficient MoE
-      'meta/llama-3.3-70b-instruct',                  // 70B production workhorse
-      'nvidia/llama-3.3-nemotron-super-49b-v1.5',    // 49B high-accuracy reasoning
-      'z-ai/glm-4.7',                                // Strong coding & tool use
-      'moonshotai/kimi-k2-instruct-0905',             // Enhanced reasoning, 256K context
+  // ── 100B–199B ─────────────────────────────────────────────────────────
+  { provider: 'nvidia', model: 'mistralai/devstral-2-123b-instruct-2512',      params: '123B (code)' },
+  { provider: 'nvidia', model: 'qwen/qwen3.5-122b-a10b',                       params: '122B MoE' },
+  { provider: 'groq',  model: 'openai/gpt-oss-120b',                           params: '120B' },
+  { provider: 'nvidia', model: 'nvidia/nemotron-3-super-120b-a12b',            params: '120B MoE' },
 
-      // Tier 4 — Code-focused specialists
-      'qwen/qwen2.5-coder-32b-instruct',             // 32B, multi-language code gen
-      'nvidia/nemotron-3-nano-30b-a3b',               // 30B efficient MoE, 1M context
-      'google/gemma-3-27b-it',                        // 27B, fast multimodal
-      'mistralai/mistral-small-24b-instruct',         // 24B, code & math
+  // ── 50B–99B ───────────────────────────────────────────────────────────
+  { provider: 'nvidia', model: 'qwen/qwen3-next-80b-a3b-instruct',            params: '80B MoE' },
+  { provider: 'nvidia', model: 'meta/llama-3.3-70b-instruct',                  params: '70B' },
+  { provider: 'groq',  model: 'llama-3.3-70b-versatile',                       params: '70B (Groq)' },
+  { provider: 'nvidia', model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5',    params: '49B' },
 
-      // Tier 5 — Lightweight last-resort fallbacks
-      'nvidia/nvidia-nemotron-nano-9b-v2',            // 9B hybrid, edge-friendly
-      'meta/llama-3.1-8b-instruct',                   // 8B, fastest fallback
-    ],
-  },
+  // ── 30B–49B ───────────────────────────────────────────────────────────
+  { provider: 'nvidia', model: 'z-ai/glm-4.7',                                 params: '~40B' },
+  { provider: 'groq',  model: 'qwen/qwen3-32b',                                params: '32B' },
+  { provider: 'nvidia', model: 'qwen/qwen2.5-coder-32b-instruct',             params: '32B (code)' },
+  { provider: 'nvidia', model: 'nvidia/nemotron-3-nano-30b-a3b',              params: '30B MoE' },
+
+  // ── 20B–29B ───────────────────────────────────────────────────────────
+  { provider: 'nvidia', model: 'google/gemma-3-27b-it',                        params: '27B' },
+  { provider: 'nvidia', model: 'mistralai/mistral-small-24b-instruct',        params: '24B' },
+  { provider: 'groq',  model: 'openai/gpt-oss-20b',                            params: '20B' },
+  { provider: 'groq',  model: 'moonshotai/kimi-k2-instruct-0905',             params: '~20B MoE' },
+  { provider: 'nvidia', model: 'moonshotai/kimi-k2-instruct-0905',            params: '~20B MoE (NV)' },
+
+  // ── <20B (lightweight fallbacks) ──────────────────────────────────────
+  { provider: 'groq',  model: 'meta-llama/llama-4-scout-17b-16e-instruct',    params: '17B MoE' },
+  { provider: 'nvidia', model: 'nvidia/nvidia-nemotron-nano-9b-v2',           params: '9B' },
+  { provider: 'groq',  model: 'llama-3.1-8b-instant',                          params: '8B (Groq)' },
+  { provider: 'nvidia', model: 'meta/llama-3.1-8b-instruct',                  params: '8B (NV)' },
 ];
 
+// ── Pixel Art Generator ─────────────────────────────────────────────────
 async function generatePixelArt(prompt: string) {
   const apiKey = process.env.PIXELLAB_API_KEY;
   if (!apiKey) {
@@ -111,6 +105,7 @@ async function generatePixelArt(prompt: string) {
   }
 }
 
+// ── Main Generation Endpoint ────────────────────────────────────────────
 export async function POST(req: Request) {
   const { prompt, modId, modName, mavenGroup, currentFiles, baseTemplates } = await req.json();
 
@@ -158,62 +153,62 @@ Rules:
 - Always provide FULL content for modified files.
 - DO NOT explain. Only return the JSON.`;
 
-  let lastError = null;
-
-  // Try each provider in order
-  for (const provider of PROVIDERS) {
-    const apiKey = process.env[provider.apiKeyEnv];
-    if (!apiKey) {
-      console.warn(`${provider.name}: ${provider.apiKeyEnv} not set, skipping`);
-      continue;
-    }
-
-    const client = new OpenAI({
-      apiKey,
-      baseURL: provider.baseURL,
-    });
-
-    // Try each model within this provider
-    for (const model of provider.models) {
-      try {
-        console.log(`Trying ${provider.name} → ${model}...`);
-        const completion = await client.chat.completions.create({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt },
-          ],
-          model: model,
-          response_format: { type: 'json_object' },
-        });
-
-        const responseData = JSON.parse(completion.choices[0].message.content || '{"upsert": [], "delete": []}');
-
-        // Generate pixel art textures if needed
-        if (responseData.upsert) {
-          for (const file of responseData.upsert) {
-            if (file.encoding === 'texture_prompt') {
-              console.log(`Generating 16x16 texture for ${file.path} with prompt: ${file.content}`);
-              const base64 = await generatePixelArt(file.content);
-              if (base64) {
-                file.content = base64;
-                file.encoding = 'base64';
-              } else {
-                file.content = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAFklEQVR42mP8z8BQz0AEYBxVMBiYAAAhS6Pz79rv9AAAAABJRU5ErkJggg==";
-                file.encoding = 'base64';
-              }
-            }
-          }
-        }
-
-        console.log(`✓ Success with ${provider.name} → ${model}`);
-        return NextResponse.json(responseData);
-      } catch (error: any) {
-        console.error(`✗ Failed ${provider.name} → ${model}:`, error.message || error);
-        lastError = error;
-        continue;
-      }
+  // Build OpenAI clients for each provider (cached per request)
+  const clients: Partial<Record<ProviderKey, OpenAI>> = {};
+  for (const [key, config] of Object.entries(PROVIDER_CONFIG)) {
+    const apiKey = process.env[config.apiKeyEnv];
+    if (apiKey) {
+      clients[key as ProviderKey] = new OpenAI({ apiKey, baseURL: config.baseURL });
     }
   }
 
-  return NextResponse.json({ error: 'All providers and models failed', details: lastError?.message }, { status: 500 });
+  let lastError = null;
+
+  // Try each model in unified best-to-worst order
+  for (const { provider, model, params } of MODELS) {
+    const client = clients[provider];
+    if (!client) {
+      continue; // API key not set for this provider
+    }
+
+    try {
+      console.log(`[${provider.toUpperCase()}] Trying ${model} (${params})...`);
+      const completion = await client.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt },
+        ],
+        model: model,
+        response_format: { type: 'json_object' },
+      });
+
+      const responseData = JSON.parse(completion.choices[0].message.content || '{"upsert": [], "delete": []}');
+
+      // Generate pixel art textures if needed
+      if (responseData.upsert) {
+        for (const file of responseData.upsert) {
+          if (file.encoding === 'texture_prompt') {
+            console.log(`Generating 16x16 texture for ${file.path} with prompt: ${file.content}`);
+            const base64 = await generatePixelArt(file.content);
+            if (base64) {
+              file.content = base64;
+              file.encoding = 'base64';
+            } else {
+              file.content = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAFklEQVR42mP8z8BQz0AEYBxVMBiYAAAhS6Pz79rv9AAAAABJRU5ErkJggg==";
+              file.encoding = 'base64';
+            }
+          }
+        }
+      }
+
+      console.log(`✓ Success with [${provider.toUpperCase()}] ${model} (${params})`);
+      return NextResponse.json(responseData);
+    } catch (error: any) {
+      console.error(`✗ Failed [${provider.toUpperCase()}] ${model}:`, error.message || error);
+      lastError = error;
+      continue;
+    }
+  }
+
+  return NextResponse.json({ error: 'All models failed across all providers', details: lastError?.message }, { status: 500 });
 }
