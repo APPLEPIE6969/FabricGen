@@ -369,25 +369,46 @@ You MUST respond with a JSON object wrapped in markdown code blocks:
           let thinkingBuffer = '';
           let lastFlush = Date.now();
 
-          for await (const chunk of streamResponse) {
-            const delta = chunk.choices?.[0]?.delta;
-            if (!delta) continue;
+          // ── Stuck-AI Watchdog (3-minute monitor) ───────────────────────
+          let lastCheckLength = -1;
+          let unchangedCount = 0;
+          const watchdogInterval = setInterval(() => {
+            if (fullContent.length === lastCheckLength) {
+              unchangedCount++;
+              console.warn(`[WATCHDOG] Progress stalled for ${unchangedCount} minute(s) on ${model}`);
+              if (unchangedCount >= 3) {
+                console.error(`[WATCHDOG] Stalled for 3 minutes! Aborting ${model}...`);
+                abortController.abort();
+              }
+            } else {
+              lastCheckLength = fullContent.length;
+              unchangedCount = 0;
+            }
+          }, 60000);
 
-            const reasoningContent = (delta as any).reasoning_content || '';
-            const textContent = delta.content || '';
-            const combined = reasoningContent + textContent;
+          try {
+            for await (const chunk of streamResponse) {
+              const delta = chunk.choices?.[0]?.delta;
+              if (!delta) continue;
 
-            if (combined) {
-              fullContent += combined;
-              thinkingBuffer += combined;
+              const reasoningContent = (delta as any).reasoning_content || '';
+              const textContent = delta.content || '';
+              const combined = reasoningContent + textContent;
 
-              const now = Date.now();
-              if (now - lastFlush > 80 || thinkingBuffer.length > 60) {
-                send('thinking', { text: thinkingBuffer });
-                thinkingBuffer = '';
-                lastFlush = now;
+              if (combined) {
+                fullContent += combined;
+                thinkingBuffer += combined;
+
+                const now = Date.now();
+                if (now - lastFlush > 80 || thinkingBuffer.length > 60) {
+                  send('thinking', { text: thinkingBuffer });
+                  thinkingBuffer = '';
+                  lastFlush = now;
+                }
               }
             }
+          } finally {
+            clearInterval(watchdogInterval);
           }
 
           if (thinkingBuffer) {
