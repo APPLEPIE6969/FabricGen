@@ -17,7 +17,7 @@ interface ModFile {
 // ── AI Live Feedback types ──────────────────────────────────────────────
 interface AiLogEntry {
   id: number;
-  type: 'model_try' | 'model_fail' | 'model_success' | 'texture' | 'texture_done' | 'textures_start' | 'info';
+  type: 'model_try' | 'model_fail' | 'model_success' | 'texture' | 'texture_done' | 'textures_start' | 'texture_ai' | 'texture_exec' | 'texture_exec_fail' | 'info';
   provider?: string;
   model?: string;
   params?: string;
@@ -26,6 +26,9 @@ interface AiLogEntry {
   prompt?: string;
   count?: number;
   message?: string;
+  size?: number;
+  length?: number;
+  error?: string;
   timestamp: number;
 }
 
@@ -204,11 +207,23 @@ export default function Home() {
                 break;
 
               case 'texture':
-                addLog({ type: 'texture', path: event.payload.path, prompt: event.payload.prompt });
+                addLog({ type: 'texture', path: event.payload.path, prompt: event.payload.prompt, size: event.payload.size });
+                break;
+
+              case 'texture_ai':
+                addLog({ type: 'texture_ai', provider: event.payload.provider, model: event.payload.model, params: event.payload.params });
+                break;
+
+              case 'texture_exec':
+                addLog({ type: 'texture_exec', length: event.payload.length });
+                break;
+
+              case 'texture_exec_fail':
+                addLog({ type: 'texture_exec_fail', error: event.payload.error });
                 break;
 
               case 'texture_done':
-                addLog({ type: 'texture_done', path: event.payload.path });
+                addLog({ type: 'texture_done', path: event.payload.path, size: event.payload.size });
                 break;
 
               case 'result':
@@ -383,8 +398,38 @@ export default function Home() {
           <div key={entry.id} className="flex items-start gap-2 animate-in slide-in-from-left-2 duration-300 pl-4">
             <Loader2 className="w-2.5 h-2.5 text-purple-400 animate-spin mt-0.5 shrink-0" />
             <span className="text-zinc-500 text-[10px]">
-              Painting <span className="text-purple-300 font-mono">{entry.path?.split('/').pop()}</span>{' '}
+              Painting <span className="text-purple-300 font-mono">{entry.path?.split('/').pop()}</span>
+              <span className="text-purple-500/60 font-bold"> {entry.size}×{entry.size}</span>{' '}
               — <span className="text-zinc-600 italic">&quot;{entry.prompt}&quot;</span>
+            </span>
+          </div>
+        );
+      case 'texture_ai':
+        return (
+          <div key={entry.id} className="flex items-start gap-2 animate-in slide-in-from-left-2 duration-300 pl-6">
+            <Brain className="w-2.5 h-2.5 text-purple-400 mt-0.5 shrink-0" />
+            <span className="text-zinc-600 text-[10px]">
+              Writing script via <span className="text-purple-400 font-bold">[{entry.provider}]</span>{' '}
+              <span className="text-zinc-400 font-mono">{entry.model}</span>{' '}
+              <span className="text-zinc-700">({entry.params})</span>
+            </span>
+          </div>
+        );
+      case 'texture_exec':
+        return (
+          <div key={entry.id} className="flex items-start gap-2 animate-in slide-in-from-left-2 duration-300 pl-6">
+            <Zap className="w-2.5 h-2.5 text-yellow-500 mt-0.5 shrink-0" />
+            <span className="text-zinc-600 text-[10px]">
+              Executing Python script <span className="text-zinc-500">({entry.length} chars)</span>
+            </span>
+          </div>
+        );
+      case 'texture_exec_fail':
+        return (
+          <div key={entry.id} className="flex items-start gap-2 animate-in slide-in-from-left-2 duration-300 pl-6">
+            <AlertCircle className="w-2.5 h-2.5 text-red-500 mt-0.5 shrink-0" />
+            <span className="text-red-400/70 text-[10px] italic">
+              Script failed — {entry.error}
             </span>
           </div>
         );
@@ -393,7 +438,8 @@ export default function Home() {
           <div key={entry.id} className="flex items-start gap-2 animate-in slide-in-from-left-2 duration-300 pl-4">
             <CheckCircle2 className="w-2.5 h-2.5 text-purple-500 mt-0.5 shrink-0" />
             <span className="text-zinc-500 text-[10px]">
-              <span className="text-purple-300 font-mono">{entry.path?.split('/').pop()}</span> done
+              <span className="text-purple-300 font-mono">{entry.path?.split('/').pop()}</span>
+              <span className="text-purple-500/60 font-bold"> {entry.size}×{entry.size}</span> done
             </span>
           </div>
         );

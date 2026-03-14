@@ -1,4 +1,9 @@
 import OpenAI from 'openai';
+import { execSync } from 'child_process';
+import { writeFileSync, unlinkSync, mkdirSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
+import { randomBytes } from 'crypto';
 
 // ── Unified Model Ranking ───────────────────────────────────────────────
 type ProviderKey = 'groq' | 'nvidia' | 'cerebras' | 'openrouter';
@@ -49,40 +54,152 @@ const MODELS: RankedModel[] = [
   { provider: 'nvidia', model: 'meta/llama-3.1-8b-instruct', params: '8B (NV)' },
 ];
 
-// ── Pixel Art Generator ─────────────────────────────────────────────────
-async function generatePixelArt(prompt: string) {
-  const apiKey = process.env.PIXELLAB_API_KEY;
-  if (!apiKey) {
-    console.error('PIXELLAB_API_KEY is not set');
-    return null;
-  }
+// Fast models used specifically for texture script generation (smaller = faster)
+const TEXTURE_MODELS: RankedModel[] = [
+  { provider: 'groq', model: 'qwen/qwen3-32b', params: '32B' },
+  { provider: 'groq', model: 'llama-3.3-70b-versatile', params: '70B (Groq)' },
+  { provider: 'nvidia', model: 'qwen/qwen2.5-coder-32b-instruct', params: '32B (code)' },
+  { provider: 'groq', model: 'openai/gpt-oss-20b', params: '20B' },
+  { provider: 'nvidia', model: 'meta/llama-3.3-70b-instruct', params: '70B' },
+  { provider: 'nvidia', model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5', params: '49B' },
+  { provider: 'groq', model: 'llama-3.1-8b-instant', params: '8B (Groq)' },
+  { provider: 'nvidia', model: 'meta/llama-3.1-8b-instruct', params: '8B (NV)' },
+  { provider: 'openrouter', model: 'nvidia/nemotron-nano-9b-v2:free', params: '9B (free)' },
+];
 
-  try {
-    const response = await fetch('https://api.pixellab.ai/v1/generate-image-pixflux', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        description: prompt,
-        image_size: { width: 32, height: 32 },
-        no_background: true,
-      }),
-    });
+// ── AI-Powered Texture Generator ────────────────────────────────────────
+// Uses an AI model to generate a Python/PIL script, then executes it to
+// produce high-quality Minecraft pixel art textures. No external API needed.
+async function generatePixelArt(
+  prompt: string,
+  size: number,
+  clients: Partial<Record<ProviderKey, OpenAI>>,
+  send?: (type: string, payload: any) => void
+): Promise<string | null> {
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Pixel Lab API error:', errorText);
-      return null;
+  const textureSystemPrompt = `You are a Minecraft pixel art texture artist AI.
+Your job is to write a COMPLETE, RUNNABLE Python script that generates a Minecraft-style pixel art texture.
+
+CRITICAL RULES:
+1. Use ONLY the PIL/Pillow library (from PIL import Image, ImageDraw).
+2. The image MUST be exactly ${size}x${size} pixels.
+3. Draw pixel-by-pixel or use rectangles. Think about shading, highlights, edge details, and color variation like real Minecraft textures.
+4. Use realistic Minecraft-style color palettes — NOT flat single colors. Add subtle color variation per-pixel for depth.
+5. At the end, the script MUST:
+   a. Save the image to a BytesIO buffer as PNG
+   b. Print ONLY the raw base64 string to stdout (no newlines, no prefix, no "data:image" — just the base64 string)
+6. Do NOT use any external files, URLs, or downloads.
+7. Do NOT print anything else to stdout (no debug prints, no messages).
+8. The script must be 100% self-contained — if I paste it into a .py file and run it, it must work.
+
+EXAMPLE STRUCTURE:
+\`\`\`python
+from PIL import Image, ImageDraw
+import base64
+from io import BytesIO
+import random
+
+img = Image.new('RGBA', (${size}, ${size}), (0, 0, 0, 0))
+draw = ImageDraw.Draw(img)
+
+# ... draw your pixel art here ...
+
+buf = BytesIO()
+img.save(buf, format='PNG')
+print(base64.b64encode(buf.getvalue()).decode('utf-8'), end='')
+\`\`\`
+
+RESPOND WITH ONLY THE PYTHON CODE. No markdown, no explanation, no backticks. Just the raw Python script.`;
+
+  for (const { provider, model, params } of TEXTURE_MODELS) {
+    const client = clients[provider];
+    if (!client) continue;
+
+    try {
+      send?.('texture_ai', { provider: provider.toUpperCase(), model: model.split('/').pop(), params });
+      console.log(`[TEXTURE AI] Trying ${provider}/${model} for script generation...`);
+
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 20000);
+
+      const completion = await client.chat.completions.create({
+        messages: [
+          { role: 'system', content: textureSystemPrompt },
+          { role: 'user', content: `Generate a ${size}x${size} Minecraft pixel art texture of: ${prompt}` },
+        ],
+        model: model,
+        temperature: 0.7,
+      }, {
+        signal: abortController.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      let script = completion.choices[0]?.message?.content || '';
+      if (!script.trim()) continue;
+
+      // Strip markdown code fences if the model wraps them
+      script = script
+        .replace(/^```(?:python)?\s*\n?/i, '')
+        .replace(/\n?```\s*$/i, '')
+        .trim();
+
+      // Strip any <think>...</think> reasoning blocks
+      script = script.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+      // If there's still non-Python text before the imports, extract just the code
+      const importMatch = script.match(/((?:from |import )[\s\S]*)/);
+      if (importMatch) {
+        script = importMatch[1];
+      }
+
+      console.log(`[TEXTURE AI] Got script from ${model} (${script.length} chars). Executing...`);
+      send?.('texture_exec', { length: script.length });
+
+      // Write to temp file and execute
+      const tempId = randomBytes(8).toString('hex');
+      const tempDir = join(tmpdir(), 'fabricgen-textures');
+      mkdirSync(tempDir, { recursive: true });
+      const scriptPath = join(tempDir, `texture_${tempId}.py`);
+
+      try {
+        writeFileSync(scriptPath, script, 'utf-8');
+
+        const output = execSync(`python "${scriptPath}"`, {
+          timeout: 15000,
+          maxBuffer: 10 * 1024 * 1024, // 10MB for large base64
+          encoding: 'utf-8',
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+
+        // Clean up
+        try { unlinkSync(scriptPath); } catch {}
+
+        const base64Result = output.trim();
+
+        // Validate it's actual base64 and looks like a PNG
+        if (base64Result.length > 50 && /^[A-Za-z0-9+/=]+$/.test(base64Result)) {
+          console.log(`[TEXTURE AI] ✓ Successfully generated ${size}x${size} texture (${base64Result.length} chars base64)`);
+          return base64Result;
+        } else {
+          console.error(`[TEXTURE AI] Output doesn't look like valid base64 (${base64Result.length} chars)`);
+          continue;
+        }
+      } catch (execError: any) {
+        try { unlinkSync(scriptPath); } catch {}
+        console.error(`[TEXTURE AI] Script execution failed:`, execError.stderr || execError.message);
+        send?.('texture_exec_fail', { error: (execError.stderr || execError.message || '').slice(0, 200) });
+        continue;
+      }
+    } catch (error: any) {
+      const isTimeout = error.name === 'AbortError' || error.message?.includes('aborted');
+      console.error(`[TEXTURE AI] ${model} failed:`, isTimeout ? 'Timed out' : error.message);
+      continue;
     }
-
-    const data = await response.json();
-    return data.image.base64;
-  } catch (error) {
-    console.error('Failed to call Pixel Lab:', error);
-    return null;
   }
+
+  console.error('[TEXTURE AI] All texture models failed, returning fallback');
+  return null;
 }
 
 // ── SSE helper ──────────────────────────────────────────────────────────
@@ -113,11 +230,13 @@ Instructions:
 1. Analyze the user request and current project state.
 2. Determine which files need to be ADDED, MODIFIED, or REMOVED.
 3. You generate Java code, JSON models, lang files, etc.
-4. TEXTURE GENERATION (32x32 pixels):
-   - For ANY texture file (.png), DO NOT generate base64 content.
-   - Instead, set "content" to a highly descriptive prompt for the texture (e.g., "a shiny purple amethyst gemstone pixel art, isolated").
+4. TEXTURE GENERATION:
+   - For ANY texture file (.png), DO NOT generate base64 content yourself.
+   - Instead, set "content" to a highly descriptive prompt for the texture.
+     Be descriptive about shape, colors, shading, and style (e.g. "a shiny purple amethyst gemstone, faceted with light and dark purple shades, subtle sparkle highlights, dark edges, Minecraft item icon style").
    - Set "encoding" to "texture_prompt".
-   - Note: The system will automatically generate a 32x32 PNG based on this prompt.
+   - Set "texture_size" to one of: 8, 16, 32, or 64 (pick the right resolution — items are usually 16, blocks are usually 16 or 32, detailed blocks can be 64).
+   - The system will use AI to generate the texture programmatically.
 5. Your response MUST be a JSON object with 'upsert' and 'delete' arrays.
 
 Response Schema:
@@ -126,7 +245,8 @@ Response Schema:
     {
       "path": "string",
       "content": "string",
-      "encoding": "utf-8" | "texture_prompt"
+      "encoding": "utf-8" | "texture_prompt",
+      "texture_size": 16
     }
   ],
   "delete": ["string"]
@@ -202,7 +322,6 @@ Rules:
             const delta = chunk.choices?.[0]?.delta;
             if (!delta) continue;
 
-            // Some models put reasoning in a separate field
             const reasoningContent = (delta as any).reasoning_content || '';
             const textContent = delta.content || '';
             const combined = reasoningContent + textContent;
@@ -211,7 +330,6 @@ Rules:
               fullContent += combined;
               thinkingBuffer += combined;
 
-              // Flush thinking text every 80ms to avoid overwhelming the client
               const now = Date.now();
               if (now - lastFlush > 80 || thinkingBuffer.length > 60) {
                 send('thinking', { text: thinkingBuffer });
@@ -221,7 +339,6 @@ Rules:
             }
           }
 
-          // Flush any remaining thinking buffer
           if (thinkingBuffer) {
             send('thinking', { text: thinkingBuffer });
           }
@@ -248,29 +365,31 @@ Rules:
           send('model_success', { provider: provider.toUpperCase(), model, params });
           console.log(`✓ Success with [${provider.toUpperCase()}] ${model} (${params})`);
 
-          // ── Parallel Pixel Art Generation ───────────────────────────────
+          // ── AI-Powered Texture Generation ──────────────────────────────
           if (responseData.upsert) {
             const textureFiles = responseData.upsert.filter((file: any) => file.encoding === 'texture_prompt');
             
             if (textureFiles.length > 0) {
               send('textures_start', { count: textureFiles.length });
 
-              const texturePromises = textureFiles.map(async (file: any) => {
-                send('texture', { path: file.path, prompt: file.content });
-                console.log(`Generating 32x32 texture for ${file.path} with prompt: ${file.content}`);
+              // Generate textures sequentially to avoid overloading
+              for (const file of textureFiles) {
+                const size = [8, 16, 32, 64].includes(file.texture_size) ? file.texture_size : 32;
+                send('texture', { path: file.path, prompt: file.content, size });
+                console.log(`[TEXTURE] Generating ${size}x${size} for ${file.path}: "${file.content}"`);
                 
-                const base64 = await generatePixelArt(file.content);
+                const base64 = await generatePixelArt(file.content, size, clients, send);
                 if (base64) {
                   file.content = base64;
                   file.encoding = 'base64';
                 } else {
-                  file.content = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAFklEQVR42mP8z8BQz0AEYBxVMBiYAAAhS6Pz79rv9AAAAABJRU5ErkJggg==";
+                  // Fallback: tiny transparent PNG
+                  file.content = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwgAADsIBFShKgAAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xNkRpr/UAAABKSURBVFhH7c0xAQAgDASx8G/6My4YOLSD7M+cc3+PdTgD1uEMWIczYB3OgHU4A9bhDFiHM2AdzoBvf8O37bIOZ8A6nAHrcAbO3BcOlFWxAXuzVgAAAABJRU5ErkJggg==";
                   file.encoding = 'base64';
                 }
-                send('texture_done', { path: file.path });
-              });
-
-              await Promise.all(texturePromises);
+                delete file.texture_size;
+                send('texture_done', { path: file.path, size });
+              }
             }
           }
 
