@@ -6,6 +6,8 @@ import { tmpdir } from 'os';
 import { randomBytes } from 'crypto';
 import { parseJsonWithRepair, validateModResponse } from '@/utils/json-repair';
 
+export const maxDuration = 180; // Allow up to 3 minutes for generation
+
 // ── Unified Model Ranking ───────────────────────────────────────────────
 type ProviderKey = 'groq' | 'nvidia' | 'cerebras' | 'openrouter';
 
@@ -429,7 +431,7 @@ You MUST respond with a JSON object wrapped in markdown code blocks:
           // ── Pre-Extraction Prep: Remove thinking tags ────────────────
           // We keep the original for debugging but clean it for parsing
           const cleanResponse = accumulatedContent.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-          
+
           send('json_repair', { strategy: 'extract_blocks' });
           const { data: responseData, repairs, success } = parseJsonWithRepair(cleanResponse);
 
@@ -487,7 +489,7 @@ You MUST respond with a JSON object wrapped in markdown code blocks:
           break;
         } catch (error: any) {
           const isTimeout = error.name === 'AbortError' || error.message?.includes('aborted');
-          const reason = isTimeout ? 'Timed out after 30s' : (error.message || 'Unknown error');
+          const reason = isTimeout ? 'Timed out after 3m' : (error.message || 'Unknown error');
           console.error(`✗ Failed [${provider.toUpperCase()}] ${model}:`, reason);
           send('model_fail', { provider: provider.toUpperCase(), model, reason });
           lastError = error;
