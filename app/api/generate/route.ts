@@ -45,8 +45,9 @@ const MODELS: RankedModel[] = [
   { provider: 'nvidia', model: 'google/gemma-3-27b-it', params: '27B' },
   { provider: 'nvidia', model: 'mistralai/mistral-small-24b-instruct', params: '24B' },
   { provider: 'groq', model: 'openai/gpt-oss-20b', params: '20B' },
-  { provider: 'groq', model: 'moonshotai/kimi-k2-instruct-0905', params: '~20B MoE' },
+  { provider: 'nvidia', model: 'moonshotai/kimi-k2-instruct', params: 'MoE (NV)' },
   { provider: 'nvidia', model: 'moonshotai/kimi-k2-instruct-0905', params: '~20B MoE (NV)' },
+  { provider: 'nvidia', model: 'moonshotai/kimi-k2-thinking', params: 'Thinking (NV)' },
   { provider: 'groq', model: 'meta-llama/llama-4-scout-17b-16e-instruct', params: '17B MoE' },
   { provider: 'openrouter', model: 'google/gemma-3-12b-it:free', params: '12B (free)' },
   { provider: 'nvidia', model: 'nvidia/nvidia-nemotron-nano-9b-v2', params: '9B' },
@@ -66,6 +67,9 @@ const TEXTURE_MODELS: RankedModel[] = [
   { provider: 'groq', model: 'llama-3.3-70b-versatile', params: '70B (Groq)' },
   { provider: 'nvidia', model: 'qwen/qwen2.5-coder-32b-instruct', params: '32B (code)' },
   { provider: 'groq', model: 'qwen/qwen3-32b', params: '32B' },
+  { provider: 'nvidia', model: 'moonshotai/kimi-k2-instruct', params: 'MoE (NV)' },
+  { provider: 'nvidia', model: 'moonshotai/kimi-k2-instruct-0905', params: 'MoE (NV)' },
+  { provider: 'nvidia', model: 'moonshotai/kimi-k2-thinking', params: 'Thinking (NV)' },
   { provider: 'groq', model: 'llama-3.1-8b-instant', params: '8B (Groq)' },
 ];
 
