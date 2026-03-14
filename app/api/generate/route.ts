@@ -66,7 +66,7 @@ async function generatePixelArt(prompt: string) {
       },
       body: JSON.stringify({
         description: prompt,
-        image_size: { width: 16, height: 16 },
+        image_size: { width: 32, height: 32 },
         no_background: true,
       }),
     });
@@ -113,11 +113,11 @@ Instructions:
 1. Analyze the user request and current project state.
 2. Determine which files need to be ADDED, MODIFIED, or REMOVED.
 3. You generate Java code, JSON models, lang files, etc.
-4. TEXTURE GENERATION (16x16 pixels):
+4. TEXTURE GENERATION (32x32 pixels):
    - For ANY texture file (.png), DO NOT generate base64 content.
    - Instead, set "content" to a highly descriptive prompt for the texture (e.g., "a shiny purple amethyst gemstone pixel art, isolated").
    - Set "encoding" to "texture_prompt".
-   - Note: The system will automatically generate a 16x16 PNG based on this prompt.
+   - Note: The system will automatically generate a 32x32 PNG based on this prompt.
 5. Your response MUST be a JSON object with 'upsert' and 'delete' arrays.
 
 Response Schema:
@@ -257,7 +257,7 @@ Rules:
 
               const texturePromises = textureFiles.map(async (file: any) => {
                 send('texture', { path: file.path, prompt: file.content });
-                console.log(`Generating 16x16 texture for ${file.path} with prompt: ${file.content}`);
+                console.log(`Generating 32x32 texture for ${file.path} with prompt: ${file.content}`);
                 
                 const base64 = await generatePixelArt(file.content);
                 if (base64) {
