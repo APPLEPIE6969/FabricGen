@@ -1,5 +1,5 @@
 export const FABRIC_TEMPLATES = {
-  buildGradle: (modId: string, modVersion: string, mavenGroup: string) => `
+	buildGradle: (modId: string, modVersion: string, mavenGroup: string) => `
 plugins {
 	id 'fabric-loom' version '1.15-SNAPSHOT'
 	id 'maven-publish'
@@ -57,7 +57,7 @@ publishing {
 }
 `,
 
-  gradleProperties: (modId: string) => `
+	gradleProperties: (modId: string) => `
 org.gradle.jvmargs=-Xmx2G
 minecraft_version=1.21.11
 yarn_mappings=1.21.11+build.4
@@ -68,7 +68,7 @@ archives_base_name=${modId}
 fabric_version=0.141.3+1.21.11
 `,
 
-  fabricModJson: (modId: string, modName: string, description: string, mavenGroup: string) => `
+	fabricModJson: (modId: string, modName: string, description: string, mavenGroup: string) => `
 {
 	"schemaVersion": 1,
 	"id": "${modId}",
@@ -102,7 +102,7 @@ fabric_version=0.141.3+1.21.11
 }
 `,
 
-  mixinJson: (modId: string, mavenGroup: string) => `
+	mixinJson: (modId: string, mavenGroup: string) => `
 {
 	"required": true,
 	"minVersion": "0.8",
@@ -117,9 +117,9 @@ fabric_version=0.141.3+1.21.11
 }
 `,
 
-  mainClass: (modId: string, modName: string, mavenGroup: string) => {
-    const className = modName.replace(/\s+/g, '');
-    return `
+	mainClass: (modId: string, modName: string, mavenGroup: string) => {
+		const className = modName.replace(/\s+/g, '');
+		return `
 package ${mavenGroup}.${modId};
 
 import net.fabricmc.api.ModInitializer;
@@ -136,9 +136,9 @@ public class ${className} implements ModInitializer {
 	}
 }
 `;
-  },
+	},
 
-  mixinClass: (modId: string, mavenGroup: string) => `
+	mixinClass: (modId: string, mavenGroup: string) => `
 package ${mavenGroup}.${modId}.mixin;
 
 import net.minecraft.client.gui.screen.TitleScreen;
@@ -156,7 +156,7 @@ public class ExampleMixin {
 }
 `,
 
-  settingsGradle: `
+	settingsGradle: `
 pluginManagement {
 	repositories {
 		maven {
@@ -171,10 +171,10 @@ pluginManagement {
 rootProject.name = 'fabric-example-mod'
 `,
 
-  gradleWrapperProperties: `
+	gradleWrapperProperties: `
 distributionBase=GRADLE_USER_HOME
 distributionPath=wrapper/dists
-distributionUrl=https\\://services.gradle.org/distributions/gradle-9.4-bin.zip
+distributionUrl=https\\://services.gradle.org/distributions/gradle-9.2.1-bin.zip
 networkTimeout=10000
 validateDistributionUrl=true
 zipStoreBase=GRADLE_USER_HOME

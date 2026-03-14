@@ -4,6 +4,7 @@ import { writeFileSync, unlinkSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { randomBytes } from 'crypto';
+import { parseJsonWithRepair, validateModResponse } from '@/utils/json-repair';
 
 // ── Unified Model Ranking ───────────────────────────────────────────────
 type ProviderKey = 'groq' | 'nvidia' | 'cerebras' | 'openrouter';
@@ -54,17 +55,18 @@ const MODELS: RankedModel[] = [
   { provider: 'nvidia', model: 'meta/llama-3.1-8b-instruct', params: '8B (NV)' },
 ];
 
-// Fast models used specifically for texture script generation (smaller = faster)
+// Smart models used specifically for texture script generation (smarter first, fast as fallback)
 const TEXTURE_MODELS: RankedModel[] = [
-  { provider: 'groq', model: 'qwen/qwen3-32b', params: '32B' },
+  { provider: 'nvidia', model: 'moonshotai/kimi-k2.5', params: '1T MoE' },
+  { provider: 'nvidia', model: 'z-ai/glm5', params: '744B MoE (Thinking)' },
+  { provider: 'nvidia', model: 'mistralai/mistral-large-3-675b-instruct-2512', params: '675B' },
+  { provider: 'nvidia', model: 'qwen/qwen3-coder-480b-a35b-instruct', params: '480B MoE (code)' },
+  { provider: 'nvidia', model: 'qwen/qwen3.5-397b-a17b', params: '400B MoE' },
+  { provider: 'nvidia', model: 'meta/llama-3.3-70b-instruct', params: '70B' },
   { provider: 'groq', model: 'llama-3.3-70b-versatile', params: '70B (Groq)' },
   { provider: 'nvidia', model: 'qwen/qwen2.5-coder-32b-instruct', params: '32B (code)' },
-  { provider: 'groq', model: 'openai/gpt-oss-20b', params: '20B' },
-  { provider: 'nvidia', model: 'meta/llama-3.3-70b-instruct', params: '70B' },
-  { provider: 'nvidia', model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5', params: '49B' },
+  { provider: 'groq', model: 'qwen/qwen3-32b', params: '32B' },
   { provider: 'groq', model: 'llama-3.1-8b-instant', params: '8B (Groq)' },
-  { provider: 'nvidia', model: 'meta/llama-3.1-8b-instruct', params: '8B (NV)' },
-  { provider: 'openrouter', model: 'nvidia/nemotron-nano-9b-v2:free', params: '9B (free)' },
 ];
 
 // ── AI-Powered Texture Generator ────────────────────────────────────────
@@ -120,7 +122,7 @@ RESPOND WITH ONLY THE PYTHON CODE. No markdown, no explanation, no backticks. Ju
       console.log(`[TEXTURE AI] Trying ${provider}/${model} for script generation...`);
 
       const abortController = new AbortController();
-      const timeoutId = setTimeout(() => abortController.abort(), 20000);
+      const timeoutId = setTimeout(() => abortController.abort(), 120000);
 
       const completion = await client.chat.completions.create({
         messages: [
@@ -173,7 +175,7 @@ RESPOND WITH ONLY THE PYTHON CODE. No markdown, no explanation, no backticks. Ju
         });
 
         // Clean up
-        try { unlinkSync(scriptPath); } catch {}
+        try { unlinkSync(scriptPath); } catch { }
 
         const base64Result = output.trim();
 
@@ -186,7 +188,7 @@ RESPOND WITH ONLY THE PYTHON CODE. No markdown, no explanation, no backticks. Ju
           continue;
         }
       } catch (execError: any) {
-        try { unlinkSync(scriptPath); } catch {}
+        try { unlinkSync(scriptPath); } catch { }
         console.error(`[TEXTURE AI] Script execution failed:`, execError.stderr || execError.message);
         send?.('texture_exec_fail', { error: (execError.stderr || execError.message || '').slice(0, 200) });
         continue;
@@ -211,7 +213,7 @@ function sseEvent(type: string, payload: any): string {
 export async function POST(req: Request) {
   const { prompt, modId, modName, mavenGroup, currentFiles, baseTemplates } = await req.json();
 
-  const systemPrompt = `You are the ultimate Universe-Class Minecraft Fabric 1.21.11 Mod Architect. 
+  const systemPrompt = `You are the ultimate Universe-Class Minecraft Fabric 1.21.11 Mod Architect.
 Your goal is to design and implement mods that feel like part of the Vanilla game, but with modern engineering excellence.
 
 Project Specifications:
@@ -225,14 +227,24 @@ Architecture & Logic Excellence:
 1. MODULAR REGISTRIES: Always organize your registrations (Items, Blocks, Entities) into dedicated 'ModItems', 'ModBlocks', etc. classes.
 2. VANILLA FEEL: Ensure all item and block properties (blast resistance, hardness, tool requirements) are realistic and consistent with Minecraft.
 3. DETAILED TEXTURE PROMPTS:
-   - For ANY texture (.png), set encoding to "texture_prompt".
-   - Your "content" MUST be a HIGH-FIDELITY visual description. 
-   - Focus on: Material (e.g., "worn iron"), Lighting (e.g., "gentle bloom on top edges"), Shading (e.g., "dithering for depth"), and Palette (e.g., "muted volcanic grays with ember speckles").
-   - Set "texture_size" to: 16 (items/standard blocks), 32 (detailed blocks), or 64 (complex textures).
+- For ANY texture (.png), set encoding to "texture_prompt".
+- Your "content" MUST be a HIGH-FIDELITY visual description.
+- Focus on: Material (e.g., "worn iron"), Lighting (e.g., "gentle bloom on top edges"), Shading (e.g., "dithering for depth"), and Palette (e.g., "muted volcanic grays with ember speckles").
+- Set "texture_size" to: 16 (items/standard blocks), 32 (detailed blocks), or 64 (complex textures).
 4. COMPLETE RESOURCES: Every block/item MUST have:
-   - A blockstate/model JSON.
-   - An entry in the 'en_us.json' lang file.
-   - A texture prompt.
+- A blockstate/model JSON.
+- An entry in the 'en_us.json' lang file.
+- A texture prompt.
+
+CRITICAL MINECRAFT 1.21+ API CHANGES:
+- Item.inventoryTick() signature changed: Use 'ServerWorld world' instead of 'World world', and 'EquipmentSlot slot' instead of 'int slot'.
+- world.isClient is now a method: Use 'world.isClient()' or 'world.isClientSide()' depending on context.
+- ServerWorld is always server-side, so you can skip the isClient check entirely when using ServerWorld.
+- For items with tick behavior, use the new signature:
+  @Override
+  public void inventoryTick(ItemStack stack, ServerWorld world, Entity entity, EquipmentSlot slot, int selected) {
+      // Your tick logic here - no need to check world.isClient() as ServerWorld is always server-side
+  }
 
 Response Integrity:
 - You respond ONLY with a JSON object.
@@ -286,7 +298,7 @@ FINAL RULE: NO CONVERSATIONAL TEXT. NO EXPLANATIONS. START WITH \`\`\`json.`;
 
         try {
           const abortController = new AbortController();
-          const timeoutId = setTimeout(() => abortController.abort(), 30000);
+          const timeoutId = setTimeout(() => abortController.abort(), 300000);
 
           // ── Stream the completion ──────────────────────────────────────
           const streamResponse = await client.chat.completions.create({
@@ -343,55 +355,33 @@ FINAL RULE: NO CONVERSATIONAL TEXT. NO EXPLANATIONS. START WITH \`\`\`json.`;
             throw new Error('Empty response from model');
           }
 
-          // ── Smart JSON Extraction ──────────────────────────────────────
-          let responseData: any = null;
-          
-          // 1. Try markdown json block
-          const jsonBlockMatch = fullContent.match(/```json\s*([\s\S]*?)```/);
-          if (jsonBlockMatch) {
-            try {
-              responseData = JSON.parse(jsonBlockMatch[1].trim());
-              console.log('✓ Extracted JSON from markdown block');
-            } catch (e) {
-              console.warn('Failed to parse JSON from markdown block, falling back...');
-            }
+          // ── Smart JSON Extraction & Repair ──────────────────────────────────────
+          const { data: responseData, repairs, success } = parseJsonWithRepair(fullContent);
+
+          if (!success) {
+            throw new Error('Failed to parse JSON after all repair attempts');
           }
 
-          // 2. Try generic code block if json block failed
-          if (!responseData) {
-            const genericBlockMatch = fullContent.match(/```\s*([\s\S]*?)```/);
-            if (genericBlockMatch) {
-              try {
-                responseData = JSON.parse(genericBlockMatch[1].trim());
-                console.log('✓ Extracted JSON from generic code block');
-              } catch (e) {
-                console.warn('Failed to parse JSON from generic code block, falling back...');
-              }
-            }
+          if (repairs.length > 0) {
+            console.log('✓ JSON repairs applied:', repairs.join('; '));
+            send('json_repair', { repairs });
           }
 
-          // 3. Last resort: regex brace match
-          if (!responseData) {
-            const rawJsonMatch = fullContent.match(/\{[\s\S]*\}/);
-            if (rawJsonMatch) {
-              try {
-                responseData = JSON.parse(rawJsonMatch[0]);
-                console.log('✓ Extracted JSON from raw regex match');
-              } catch (e) {
-                throw new Error('Response was not valid JSON even after extraction attempts');
-              }
-            } else {
-              throw new Error('No JSON structure found in response');
-            }
+          // Validate response schema
+          const validation = validateModResponse(responseData);
+          if (!validation.valid) {
+            console.warn('⚠ Response schema validation warnings:', validation.errors);
+            send('schema_warnings', { warnings: validation.errors });
           }
 
           send('model_success', { provider: provider.toUpperCase(), model, params });
           console.log(`✓ Success with [${provider.toUpperCase()}] ${model} (${params})`);
 
           // ── AI-Powered Texture Generation ──────────────────────────────
-          if (responseData.upsert) {
-            const textureFiles = responseData.upsert.filter((file: any) => file.encoding === 'texture_prompt');
-            
+          const responseObj = responseData as { upsert?: any[]; delete?: string[] };
+          if (responseObj.upsert) {
+            const textureFiles = responseObj.upsert.filter((file: any) => file.encoding === 'texture_prompt');
+
             if (textureFiles.length > 0) {
               send('textures_start', { count: textureFiles.length });
 
@@ -400,7 +390,7 @@ FINAL RULE: NO CONVERSATIONAL TEXT. NO EXPLANATIONS. START WITH \`\`\`json.`;
                 const size = [8, 16, 32, 64].includes(file.texture_size) ? file.texture_size : 32;
                 send('texture', { path: file.path, prompt: file.content, size });
                 console.log(`[TEXTURE] Generating ${size}x${size} for ${file.path}: "${file.content}"`);
-                
+
                 const base64 = await generatePixelArt(file.content, size, clients, send);
                 if (base64) {
                   file.content = base64;
@@ -417,7 +407,7 @@ FINAL RULE: NO CONVERSATIONAL TEXT. NO EXPLANATIONS. START WITH \`\`\`json.`;
           }
 
           // Send the final result
-          send('result', responseData);
+          send('result', responseObj);
           succeeded = true;
           break;
         } catch (error: any) {
