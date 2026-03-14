@@ -220,6 +220,7 @@ Project Specifications:
 - Mod Name: ${modName}
 - Mod ID: ${modId}
 - Package: ${mavenGroup}.${modId}
+- Minecraft Version: 1.21.11 (NOT 1.21.1 - THIS IS 1.21.11, A NEWER VERSION!)
 - Mappings: STRICTLY Official Mojang Mappings (Mojmap).
 - JDK Compliance: Java 21 (Use Multi-line strings, Pattern Matching for instanceof, and Records).
 
