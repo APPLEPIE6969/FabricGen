@@ -7,6 +7,8 @@ import { Download, Loader2, Hammer, Code, Zap, Settings, Book, Info, Plus, Rotat
 import { useAuth } from '@/components/AuthProvider';
 import AuthModal from '@/components/AuthModal';
 import UserMenu from '@/components/UserMenu';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ModFile {
   path: string;
@@ -630,10 +632,68 @@ export default function Home() {
                       </div>
                       <div
                         ref={thinkingRef}
-                        className="font-mono text-[11px] text-zinc-500 leading-relaxed max-h-[180px] overflow-y-auto custom-scrollbar whitespace-pre-wrap break-all"
+                        className="text-[11px] text-zinc-400 leading-relaxed max-h-[280px] overflow-y-auto custom-scrollbar prose-thinking"
                       >
-                        {aiThinking || (
-                          <span className="text-zinc-800 italic">Streaming will appear here as the model generates...</span>
+                        {aiThinking ? (
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              code({ className, children, ...props }) {
+                                const isInline = !className;
+                                return isInline ? (
+                                  <code className="bg-zinc-800 text-orange-400 px-1.5 py-0.5 rounded text-[10px] font-mono" {...props}>{children}</code>
+                                ) : (
+                                  <code className={`block bg-zinc-900 border border-zinc-800 rounded-xl p-3 my-2 text-[10px] font-mono text-zinc-300 overflow-x-auto whitespace-pre ${className}`} {...props}>{children}</code>
+                                );
+                              },
+                              pre({ children }) {
+                                return <div className="my-1">{children}</div>;
+                              },
+                              p({ children }) {
+                                return <p className="mb-1.5 text-zinc-400">{children}</p>;
+                              },
+                              h1({ children }) {
+                                return <h1 className="text-xs font-black text-zinc-200 mt-3 mb-1">{children}</h1>;
+                              },
+                              h2({ children }) {
+                                return <h2 className="text-[11px] font-black text-zinc-300 mt-2 mb-1">{children}</h2>;
+                              },
+                              h3({ children }) {
+                                return <h3 className="text-[11px] font-bold text-zinc-300 mt-2 mb-0.5">{children}</h3>;
+                              },
+                              ul({ children }) {
+                                return <ul className="list-disc list-inside ml-2 space-y-0.5 text-zinc-400">{children}</ul>;
+                              },
+                              ol({ children }) {
+                                return <ol className="list-decimal list-inside ml-2 space-y-0.5 text-zinc-400">{children}</ol>;
+                              },
+                              strong({ children }) {
+                                return <strong className="text-zinc-200 font-bold">{children}</strong>;
+                              },
+                              em({ children }) {
+                                return <em className="text-zinc-500 italic">{children}</em>;
+                              },
+                              a({ children, href }) {
+                                return <a href={href} className="text-orange-400 underline" target="_blank">{children}</a>;
+                              },
+                              blockquote({ children }) {
+                                return <blockquote className="border-l-2 border-orange-500/30 pl-3 my-1.5 text-zinc-500 italic">{children}</blockquote>;
+                              },
+                              table({ children }) {
+                                return <table className="text-[10px] border-collapse my-2 w-full">{children}</table>;
+                              },
+                              th({ children }) {
+                                return <th className="border border-zinc-800 px-2 py-1 text-left text-zinc-300 bg-zinc-900/50 font-bold">{children}</th>;
+                              },
+                              td({ children }) {
+                                return <td className="border border-zinc-800 px-2 py-1 text-zinc-400">{children}</td>;
+                              },
+                            }}
+                          >
+                            {aiThinking}
+                          </ReactMarkdown>
+                        ) : (
+                          <span className="text-zinc-800 italic font-mono">Streaming will appear here as the model generates...</span>
                         )}
                         {loading && <span className="inline-block w-1.5 h-3.5 bg-orange-500 animate-pulse ml-0.5 align-middle" />}
                       </div>
