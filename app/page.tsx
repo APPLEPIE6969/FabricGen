@@ -533,6 +533,15 @@ export default function Home() {
               </div>
 
               <div className="flex flex-wrap gap-4">
+                <div className="w-full flex items-center gap-3 px-6 py-4 bg-zinc-900/40 border border-zinc-900 rounded-2xl">
+                  <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shrink-0" />
+                  <p className="text-[11px] text-zinc-500 font-medium leading-relaxed">
+                    <span className="text-zinc-300 font-bold uppercase tracking-wider mr-1">Pro Tip:</span> 
+                    Models via <span className="text-blue-400 font-bold underline decoration-blue-400/20 underline-offset-2">NVIDIA</span> are significantly smarter but may be slower. 
+                    <span className="text-zinc-300 font-bold uppercase tracking-wider mx-1">Groq</span> & <span className="text-zinc-300 font-bold uppercase tracking-wider">Cerebras</span> are ultra-fast for rapid prototyping.
+                  </p>
+                </div>
+
                 <button
                   type="submit"
                   disabled={loading}
