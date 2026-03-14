@@ -1,17 +1,12 @@
-import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 // ── Unified Model Ranking ───────────────────────────────────────────────
-// Models from ALL providers in a single list, ranked best → worst.
-// Each entry specifies which provider to use. If a model fails (rate
-// limit, overload, missing key), it silently falls through to the next.
-
 type ProviderKey = 'groq' | 'nvidia' | 'cerebras' | 'openrouter';
 
 interface RankedModel {
   provider: ProviderKey;
   model: string;
-  params: string; // human-readable size for logging
+  params: string;
 }
 
 const PROVIDER_CONFIG: Record<ProviderKey, { baseURL: string; apiKeyEnv: string }> = {
@@ -21,51 +16,31 @@ const PROVIDER_CONFIG: Record<ProviderKey, { baseURL: string; apiKeyEnv: string 
   openrouter: { baseURL: 'https://openrouter.ai/api/v1', apiKeyEnv: 'OPENROUTER_API_KEY' },
 };
 
-// Single unified list: best → worst across all providers
 const MODELS: RankedModel[] = [
-  // ── 1000B+ ────────────────────────────────────────────────────────────
   { provider: 'nvidia', model: 'moonshotai/kimi-k2.5', params: '1T MoE' },
-
-  // ── 600B–999B ─────────────────────────────────────────────────────────
   { provider: 'nvidia', model: 'z-ai/glm5', params: '744B MoE (Thinking)' },
   { provider: 'nvidia', model: 'mistralai/mistral-large-3-675b-instruct-2512', params: '675B' },
-
-  // ── 400B–599B ─────────────────────────────────────────────────────────
   { provider: 'nvidia', model: 'qwen/qwen3-coder-480b-a35b-instruct', params: '480B MoE (code)' },
   { provider: 'nvidia', model: 'qwen/qwen3.5-397b-a17b', params: '400B MoE' },
-
-  // ── 300B–399B ─────────────────────────────────────────────────────────
-
-  // ── 200B–299B ─────────────────────────────────────────────────────────
   { provider: 'nvidia', model: 'nvidia/llama-3.1-nemotron-ultra-253b-v1', params: '253B' },
   { provider: 'nvidia', model: 'minimaxai/minimax-m2.5', params: '230B' },
-
-  // ── 100B–199B ─────────────────────────────────────────────────────────
   { provider: 'nvidia', model: 'mistralai/devstral-2-123b-instruct-2512', params: '123B (code)' },
   { provider: 'groq', model: 'openai/gpt-oss-120b', params: '120B (Groq)' },
   { provider: 'nvidia', model: 'nvidia/nemotron-3-super-120b-a12b', params: '120B MoE' },
-
-  // ── 50B–99B ───────────────────────────────────────────────────────────
   { provider: 'nvidia', model: 'qwen/qwen3-next-80b-a3b-instruct', params: '80B MoE' },
   { provider: 'nvidia', model: 'meta/llama-3.3-70b-instruct', params: '70B' },
   { provider: 'groq', model: 'llama-3.3-70b-versatile', params: '70B (Groq)' },
   { provider: 'nvidia', model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5', params: '49B' },
-
-  // ── 30B–49B ───────────────────────────────────────────────────────────
   { provider: 'nvidia', model: 'z-ai/glm4.7', params: '~40B (Thinking)' },
   { provider: 'groq', model: 'qwen/qwen3-32b', params: '32B' },
   { provider: 'nvidia', model: 'qwen/qwen2.5-coder-32b-instruct', params: '32B (code)' },
   { provider: 'nvidia', model: 'nvidia/nemotron-3-nano-30b-a3b', params: '30B MoE' },
   { provider: 'openrouter', model: 'nvidia/nemotron-3-nano-30b-a3b:free', params: '30B MoE (free)' },
-
-  // ── 20B–29B ───────────────────────────────────────────────────────────
   { provider: 'nvidia', model: 'google/gemma-3-27b-it', params: '27B' },
   { provider: 'nvidia', model: 'mistralai/mistral-small-24b-instruct', params: '24B' },
   { provider: 'groq', model: 'openai/gpt-oss-20b', params: '20B' },
   { provider: 'groq', model: 'moonshotai/kimi-k2-instruct-0905', params: '~20B MoE' },
   { provider: 'nvidia', model: 'moonshotai/kimi-k2-instruct-0905', params: '~20B MoE (NV)' },
-
-  // ── <20B (lightweight fallbacks) ──────────────────────────────────────
   { provider: 'groq', model: 'meta-llama/llama-4-scout-17b-16e-instruct', params: '17B MoE' },
   { provider: 'openrouter', model: 'google/gemma-3-12b-it:free', params: '12B (free)' },
   { provider: 'nvidia', model: 'nvidia/nvidia-nemotron-nano-9b-v2', params: '9B' },
@@ -110,7 +85,12 @@ async function generatePixelArt(prompt: string) {
   }
 }
 
-// ── Main Generation Endpoint ────────────────────────────────────────────
+// ── SSE helper ──────────────────────────────────────────────────────────
+function sseEvent(type: string, payload: any): string {
+  return `data: ${JSON.stringify({ type, payload })}\n\n`;
+}
+
+// ── Main Generation Endpoint (Streaming SSE) ────────────────────────────
 export async function POST(req: Request) {
   const { prompt, modId, modName, mavenGroup, currentFiles, baseTemplates } = await req.json();
 
@@ -158,7 +138,7 @@ Rules:
 - Always provide FULL content for modified files.
 - DO NOT explain. Only return the JSON.`;
 
-  // Build OpenAI clients for each provider (cached per request)
+  // Build OpenAI clients for each provider
   const clients: Partial<Record<ProviderKey, OpenAI>> = {};
   for (const [key, config] of Object.entries(PROVIDER_CONFIG)) {
     const apiKey = process.env[config.apiKeyEnv];
@@ -167,94 +147,161 @@ Rules:
     }
   }
 
-  let lastError = null;
+  const encoder = new TextEncoder();
 
-  // Try each model in unified best-to-worst order
-  for (const { provider, model, params } of MODELS) {
-    const client = clients[provider];
-    if (!client) {
-      continue; // API key not set for this provider
-    }
-
-    try {
-      console.log(`[${provider.toUpperCase()}] Trying ${model} (${params})...`);
-
-      // 1. Strict timeout (15 seconds) so a stuck API doesn't hang the loop
-      const abortController = new AbortController();
-      const timeoutId = setTimeout(() => abortController.abort(), 15000);
-
-      const completion = await client.chat.completions.create({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: prompt },
-        ],
-        model: model,
-        response_format: { type: 'json_object' },
-      }, {
-        signal: abortController.signal,
-        ...(provider === 'nvidia' && model.startsWith('z-ai/glm') ? {
-          extraBody: {
-            chat_template_kwargs: {
-              enable_thinking: true,
-              clear_thinking: false
-            }
-          }
-        } : {})
-      });
-
-      clearTimeout(timeoutId);
-
-      const msg = completion.choices[0]?.message;
-      let rawContent = msg?.content || '';
-      if (!rawContent || rawContent.trim() === '') {
-        rawContent = (msg as any)?.reasoning_content || '';
-      }
-
-      // If reasoning text is mixed with JSON, extract just the JSON
-      let responseData;
-      try {
-        responseData = JSON.parse(rawContent || '{"upsert": [], "delete": []}');
-      } catch (err) {
-        const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          responseData = JSON.parse(jsonMatch[0]);
-        } else {
-          responseData = { upsert: [], delete: [] };
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (type: string, payload: any) => {
+        try {
+          controller.enqueue(encoder.encode(sseEvent(type, payload)));
+        } catch {
+          // Stream may have been closed by the client
         }
-      }
+      };
 
-      // 2. Parallel Pixel Art Generation
-      if (responseData.upsert) {
-        const texturePromises = responseData.upsert
-          .filter((file: any) => file.encoding === 'texture_prompt')
-          .map(async (file: any) => {
-            console.log(`Generating 16x16 texture for ${file.path} with prompt: ${file.content}`);
-            const base64 = await generatePixelArt(file.content);
-            if (base64) {
-              file.content = base64;
-              file.encoding = 'base64';
-            } else {
-              file.content = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAFklEQVR42mP8z8BQz0AEYBxVMBiYAAAhS6Pz79rv9AAAAABJRU5ErkJggg==";
-              file.encoding = 'base64';
-            }
+      let lastError: any = null;
+      let succeeded = false;
+
+      // Try each model in unified best-to-worst order
+      for (const { provider, model, params } of MODELS) {
+        const client = clients[provider];
+        if (!client) continue;
+
+        send('model_try', { provider: provider.toUpperCase(), model, params });
+        console.log(`[${provider.toUpperCase()}] Trying ${model} (${params})...`);
+
+        try {
+          const abortController = new AbortController();
+          const timeoutId = setTimeout(() => abortController.abort(), 30000);
+
+          // ── Stream the completion ──────────────────────────────────────
+          const streamResponse = await client.chat.completions.create({
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: prompt },
+            ],
+            model: model,
+            stream: true,
+          }, {
+            signal: abortController.signal,
+            ...(provider === 'nvidia' && model.startsWith('z-ai/glm') ? {
+              extraBody: {
+                chat_template_kwargs: {
+                  enable_thinking: true,
+                  clear_thinking: false
+                }
+              }
+            } : {})
           });
 
-        // Wait for all textures to generate concurrently
-        if (texturePromises.length > 0) {
-          await Promise.all(texturePromises);
+          let fullContent = '';
+          let thinkingBuffer = '';
+          let lastFlush = Date.now();
+
+          for await (const chunk of streamResponse) {
+            const delta = chunk.choices?.[0]?.delta;
+            if (!delta) continue;
+
+            // Some models put reasoning in a separate field
+            const reasoningContent = (delta as any).reasoning_content || '';
+            const textContent = delta.content || '';
+            const combined = reasoningContent + textContent;
+
+            if (combined) {
+              fullContent += combined;
+              thinkingBuffer += combined;
+
+              // Flush thinking text every 80ms to avoid overwhelming the client
+              const now = Date.now();
+              if (now - lastFlush > 80 || thinkingBuffer.length > 60) {
+                send('thinking', { text: thinkingBuffer });
+                thinkingBuffer = '';
+                lastFlush = now;
+              }
+            }
+          }
+
+          // Flush any remaining thinking buffer
+          if (thinkingBuffer) {
+            send('thinking', { text: thinkingBuffer });
+          }
+
+          clearTimeout(timeoutId);
+
+          if (!fullContent || fullContent.trim() === '') {
+            throw new Error('Empty response from model');
+          }
+
+          // Parse the JSON response
+          let responseData;
+          try {
+            responseData = JSON.parse(fullContent);
+          } catch {
+            const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              responseData = JSON.parse(jsonMatch[0]);
+            } else {
+              throw new Error('Response was not valid JSON');
+            }
+          }
+
+          send('model_success', { provider: provider.toUpperCase(), model, params });
+          console.log(`✓ Success with [${provider.toUpperCase()}] ${model} (${params})`);
+
+          // ── Parallel Pixel Art Generation ───────────────────────────────
+          if (responseData.upsert) {
+            const textureFiles = responseData.upsert.filter((file: any) => file.encoding === 'texture_prompt');
+            
+            if (textureFiles.length > 0) {
+              send('textures_start', { count: textureFiles.length });
+
+              const texturePromises = textureFiles.map(async (file: any) => {
+                send('texture', { path: file.path, prompt: file.content });
+                console.log(`Generating 16x16 texture for ${file.path} with prompt: ${file.content}`);
+                
+                const base64 = await generatePixelArt(file.content);
+                if (base64) {
+                  file.content = base64;
+                  file.encoding = 'base64';
+                } else {
+                  file.content = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAFklEQVR42mP8z8BQz0AEYBxVMBiYAAAhS6Pz79rv9AAAAABJRU5ErkJggg==";
+                  file.encoding = 'base64';
+                }
+                send('texture_done', { path: file.path });
+              });
+
+              await Promise.all(texturePromises);
+            }
+          }
+
+          // Send the final result
+          send('result', responseData);
+          succeeded = true;
+          break;
+        } catch (error: any) {
+          const isTimeout = error.name === 'AbortError' || error.message?.includes('aborted');
+          const reason = isTimeout ? 'Timed out after 30s' : (error.message || 'Unknown error');
+          console.error(`✗ Failed [${provider.toUpperCase()}] ${model}:`, reason);
+          send('model_fail', { provider: provider.toUpperCase(), model, reason });
+          lastError = error;
+          continue;
         }
       }
 
-      console.log(`✓ Success with [${provider.toUpperCase()}] ${model} (${params})`);
-      return NextResponse.json(responseData);
-    } catch (error: any) {
-      // Catch aborts as timezone issues vs actual server errors
-      const isTimeout = error.name === 'AbortError' || error.message?.includes('aborted');
-      console.error(`✗ Failed [${provider.toUpperCase()}] ${model}:`, isTimeout ? 'Timed out after 15s' : error.message || error);
-      lastError = error;
-      continue;
-    }
-  }
+      if (!succeeded) {
+        send('error', { message: 'All models failed across all providers', details: lastError?.message });
+      }
 
-  return NextResponse.json({ error: 'All models failed across all providers', details: lastError?.message }, { status: 500 });
+      send('done', {});
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { generateModZip } from '@/utils/generator';
 import { FABRIC_TEMPLATES } from '@/utils/templates';
-import { Download, Loader2, Hammer, Code, Zap, Settings, Book, Info, Plus, RotateCcw, Trash2, FileCode, ImageIcon, X, ChevronRight, Binary, ExternalLink, CheckCircle2, AlertCircle, Signal, LogIn } from 'lucide-react';
+import { Download, Loader2, Hammer, Code, Zap, Settings, Book, Info, Plus, RotateCcw, Trash2, FileCode, ImageIcon, X, ChevronRight, Binary, ExternalLink, CheckCircle2, AlertCircle, Signal, LogIn, Brain, Cpu, CircleDot, Paintbrush } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import AuthModal from '@/components/AuthModal';
 import UserMenu from '@/components/UserMenu';
@@ -12,6 +12,21 @@ interface ModFile {
   path: string;
   content: string;
   encoding?: 'base64' | 'utf-8';
+}
+
+// ── AI Live Feedback types ──────────────────────────────────────────────
+interface AiLogEntry {
+  id: number;
+  type: 'model_try' | 'model_fail' | 'model_success' | 'texture' | 'texture_done' | 'textures_start' | 'info';
+  provider?: string;
+  model?: string;
+  params?: string;
+  reason?: string;
+  path?: string;
+  prompt?: string;
+  count?: number;
+  message?: string;
+  timestamp: number;
 }
 
 export default function Home() {
@@ -33,7 +48,29 @@ export default function Home() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const { user } = useAuth();
 
+  // ── AI Live Feedback state ──────────────────────────────────────────
+  const [aiThinking, setAiThinking] = useState('');
+  const [aiLog, setAiLog] = useState<AiLogEntry[]>([]);
+  const [currentModel, setCurrentModel] = useState<{ provider: string; model: string; params: string } | null>(null);
+  const logIdRef = useRef(0);
+  const thinkingRef = useRef<HTMLDivElement>(null);
+  const logRef = useRef<HTMLDivElement>(null);
+
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-scroll thinking panel
+  useEffect(() => {
+    if (thinkingRef.current) {
+      thinkingRef.current.scrollTop = thinkingRef.current.scrollHeight;
+    }
+  }, [aiThinking]);
+
+  // Auto-scroll log panel
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight;
+    }
+  }, [aiLog]);
 
   // Simulated build progress (visual filler)
   useEffect(() => {
@@ -90,9 +127,21 @@ export default function Home() {
      return [...getBaseTemplates(), ...generatedFiles];
   };
 
+  // ── Add a log entry helper ────────────────────────────────────────────
+  const addLog = (entry: Omit<AiLogEntry, 'id' | 'timestamp'>) => {
+    const newEntry: AiLogEntry = { ...entry, id: logIdRef.current++, timestamp: Date.now() };
+    setAiLog(prev => [...prev, newEntry]);
+    return newEntry;
+  };
+
+  // ── Streaming SSE handler ─────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setAiThinking('');
+    setAiLog([]);
+    setCurrentModel(null);
+    logIdRef.current = 0;
 
     try {
       const response = await fetch('/api/generate', {
@@ -105,34 +154,106 @@ export default function Home() {
         }),
       });
 
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
+      if (!response.ok || !response.body) {
+        throw new Error('Failed to connect to the generation server');
       }
 
-      setGeneratedFiles(prev => {
-        let nextFiles = [...prev];
-        if (data.delete && Array.isArray(data.delete)) {
-          nextFiles = nextFiles.filter(f => !data.delete.includes(f.path));
-        }
-        if (data.upsert && Array.isArray(data.upsert)) {
-          data.upsert.forEach((file: ModFile) => {
-            const index = nextFiles.findIndex(f => f.path === file.path);
-            if (index !== -1) {
-              nextFiles[index] = file;
-            } else {
-              nextFiles.push(file);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        // Keep the last partial line in the buffer
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const jsonStr = line.slice(6);
+          if (!jsonStr.trim()) continue;
+
+          try {
+            const event = JSON.parse(jsonStr);
+            
+            switch (event.type) {
+              case 'model_try':
+                setCurrentModel({ provider: event.payload.provider, model: event.payload.model, params: event.payload.params });
+                setAiThinking('');
+                addLog({ type: 'model_try', provider: event.payload.provider, model: event.payload.model, params: event.payload.params });
+                break;
+
+              case 'thinking':
+                setAiThinking(prev => prev + event.payload.text);
+                break;
+
+              case 'model_fail':
+                setCurrentModel(null);
+                addLog({ type: 'model_fail', provider: event.payload.provider, model: event.payload.model, reason: event.payload.reason });
+                break;
+
+              case 'model_success':
+                addLog({ type: 'model_success', provider: event.payload.provider, model: event.payload.model, params: event.payload.params });
+                break;
+
+              case 'textures_start':
+                addLog({ type: 'textures_start', count: event.payload.count });
+                break;
+
+              case 'texture':
+                addLog({ type: 'texture', path: event.payload.path, prompt: event.payload.prompt });
+                break;
+
+              case 'texture_done':
+                addLog({ type: 'texture_done', path: event.payload.path });
+                break;
+
+              case 'result':
+                // Process the final result exactly like before
+                setGeneratedFiles(prev => {
+                  let nextFiles = [...prev];
+                  const data = event.payload;
+                  if (data.delete && Array.isArray(data.delete)) {
+                    nextFiles = nextFiles.filter((f: ModFile) => !data.delete.includes(f.path));
+                  }
+                  if (data.upsert && Array.isArray(data.upsert)) {
+                    data.upsert.forEach((file: ModFile) => {
+                      const index = nextFiles.findIndex((f: ModFile) => f.path === file.path);
+                      if (index !== -1) {
+                        nextFiles[index] = file;
+                      } else {
+                        nextFiles.push(file);
+                      }
+                    });
+                  }
+                  return nextFiles;
+                });
+                addLog({ type: 'info', message: '✓ Generation complete — files updated' });
+                break;
+
+              case 'error':
+                addLog({ type: 'info', message: '✗ ' + event.payload.message });
+                alert('Error generating mod: ' + event.payload.message);
+                break;
+
+              case 'done':
+                // Stream finished
+                break;
             }
-          });
+          } catch {
+            // Skip malformed JSON lines
+          }
         }
-        return nextFiles;
-      });
+      }
 
     } catch (error: any) {
       alert('Error generating mod: ' + error.message);
     } finally {
       setLoading(false);
+      setCurrentModel(null);
     }
   };
 
@@ -194,6 +315,9 @@ export default function Home() {
       setSelectedFile(null);
       setBuildStatus(null);
       setBuilding(false);
+      setAiThinking('');
+      setAiLog([]);
+      setCurrentModel(null);
     }
   };
 
@@ -206,6 +330,83 @@ export default function Home() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // ── Render a single log entry ─────────────────────────────────────────
+  const renderLogEntry = (entry: AiLogEntry) => {
+    switch (entry.type) {
+      case 'model_try':
+        return (
+          <div key={entry.id} className="flex items-start gap-2 animate-in slide-in-from-left-2 duration-300">
+            <Loader2 className="w-3 h-3 text-orange-500 animate-spin mt-0.5 shrink-0" />
+            <span className="text-zinc-400 text-[11px]">
+              Trying <span className="text-orange-400 font-bold">[{entry.provider}]</span>{' '}
+              <span className="text-zinc-200 font-mono">{entry.model?.split('/').pop()}</span>{' '}
+              <span className="text-zinc-600">({entry.params})</span>
+            </span>
+          </div>
+        );
+      case 'model_fail':
+        return (
+          <div key={entry.id} className="flex items-start gap-2 animate-in slide-in-from-left-2 duration-300">
+            <AlertCircle className="w-3 h-3 text-red-500 mt-0.5 shrink-0" />
+            <span className="text-zinc-500 text-[11px]">
+              <span className="text-red-400 font-bold">[{entry.provider}]</span>{' '}
+              <span className="text-zinc-500 font-mono">{entry.model?.split('/').pop()}</span>{' '}
+              — <span className="text-red-400/70 italic">{entry.reason}</span>
+            </span>
+          </div>
+        );
+      case 'model_success':
+        return (
+          <div key={entry.id} className="flex items-start gap-2 animate-in slide-in-from-left-2 duration-300">
+            <CheckCircle2 className="w-3 h-3 text-green-500 mt-0.5 shrink-0" />
+            <span className="text-zinc-300 text-[11px]">
+              <span className="text-green-400 font-bold">[{entry.provider}]</span>{' '}
+              <span className="text-zinc-100 font-mono font-bold">{entry.model?.split('/').pop()}</span>{' '}
+              <span className="text-green-500">responded successfully</span>{' '}
+              <span className="text-zinc-600">({entry.params})</span>
+            </span>
+          </div>
+        );
+      case 'textures_start':
+        return (
+          <div key={entry.id} className="flex items-start gap-2 animate-in slide-in-from-left-2 duration-300 mt-1">
+            <Paintbrush className="w-3 h-3 text-purple-500 mt-0.5 shrink-0" />
+            <span className="text-purple-400 text-[11px] font-bold">
+              Generating {entry.count} texture{(entry.count ?? 0) > 1 ? 's' : ''}...
+            </span>
+          </div>
+        );
+      case 'texture':
+        return (
+          <div key={entry.id} className="flex items-start gap-2 animate-in slide-in-from-left-2 duration-300 pl-4">
+            <Loader2 className="w-2.5 h-2.5 text-purple-400 animate-spin mt-0.5 shrink-0" />
+            <span className="text-zinc-500 text-[10px]">
+              Painting <span className="text-purple-300 font-mono">{entry.path?.split('/').pop()}</span>{' '}
+              — <span className="text-zinc-600 italic">&quot;{entry.prompt}&quot;</span>
+            </span>
+          </div>
+        );
+      case 'texture_done':
+        return (
+          <div key={entry.id} className="flex items-start gap-2 animate-in slide-in-from-left-2 duration-300 pl-4">
+            <CheckCircle2 className="w-2.5 h-2.5 text-purple-500 mt-0.5 shrink-0" />
+            <span className="text-zinc-500 text-[10px]">
+              <span className="text-purple-300 font-mono">{entry.path?.split('/').pop()}</span> done
+            </span>
+          </div>
+        );
+      case 'info':
+        return (
+          <div key={entry.id} className="flex items-start gap-2 animate-in slide-in-from-left-2 duration-300 mt-1">
+            <CircleDot className="w-3 h-3 text-zinc-500 mt-0.5 shrink-0" />
+            <span className="text-zinc-400 text-[11px]">{entry.message}</span>
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -225,13 +426,13 @@ export default function Home() {
             <a href="https://github.com/diddy62626/Minecraft-Fabric-1.21.11-Mod-Generator" target="_blank" className="hover:text-zinc-200 transition-colors inline-flex items-center gap-1">GitHub <ExternalLink className="w-2.5 h-2.5" /></a>
           </div>
           <div className="flex items-center gap-4">
-             <button onClick={handleReset} className="p-2 text-zinc-600 hover:text-orange-500 transition-colors" title="Reset Project"><RotateCcw className="w-5 h-5" /></button>
+             <button onClick={handleReset} className="p-2 text-zinc-600 hover:text-orange-500 transition-colors cursor-pointer active:scale-95" title="Reset Project"><RotateCcw className="w-5 h-5" /></button>
              {user ? (
                <UserMenu />
              ) : (
                <button
                  onClick={() => setAuthModalOpen(true)}
-                 className="flex items-center gap-2 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all"
+                 className="flex items-center gap-2 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer active:scale-95"
                >
                  <LogIn className="w-3.5 h-3.5" /> Sign In
                </button>
@@ -303,7 +504,7 @@ export default function Home() {
                   type="button"
                   onClick={handleDownload}
                   disabled={exporting || generatedFiles.length === 0}
-                  className="flex-1 min-w-[150px] bg-zinc-800 hover:bg-zinc-700 text-white font-black py-5 px-8 rounded-2xl flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] disabled:opacity-50 shadow-xl"
+                  className="flex-1 min-w-[150px] bg-zinc-800 hover:bg-zinc-700 text-white font-black py-5 px-8 rounded-2xl flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] disabled:opacity-50 shadow-xl cursor-pointer"
                 >
                   {exporting ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -319,7 +520,7 @@ export default function Home() {
                   type="button"
                   onClick={handleCloudBuild}
                   disabled={building || generatedFiles.length === 0}
-                  className="flex-1 min-w-[150px] bg-orange-600 hover:bg-orange-500 text-white font-black py-5 px-8 rounded-2xl flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] disabled:opacity-50 disabled:bg-zinc-900 shadow-xl shadow-orange-900/10"
+                  className="flex-1 min-w-[150px] bg-orange-600 hover:bg-orange-500 text-white font-black py-5 px-8 rounded-2xl flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] disabled:opacity-50 disabled:bg-zinc-900 shadow-xl shadow-orange-900/10 cursor-pointer"
                 >
                   {building ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -331,6 +532,69 @@ export default function Home() {
                   )}
                 </button>
               </div>
+
+              {/* ── Live AI Thinking Panel ── */}
+              {(loading || aiLog.length > 0) && (
+                <div className="space-y-0 rounded-4xl border border-zinc-900 overflow-hidden animate-in slide-in-from-top-4 duration-500 bg-zinc-950">
+                  {/* Header bar */}
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-900 bg-zinc-900/40">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Brain className="w-4 h-4 text-orange-500" />
+                        {loading && (
+                          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+                        )}
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                        {loading ? 'AI Processing' : 'AI Session Complete'}
+                      </span>
+                    </div>
+                    {currentModel && (
+                      <div className="flex items-center gap-2 bg-zinc-950 px-3 py-1 rounded-full border border-zinc-900">
+                        <Cpu className="w-3 h-3 text-orange-500" />
+                        <span className="text-[9px] font-black text-orange-400 uppercase tracking-wider">
+                          {currentModel.provider} · {currentModel.params}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Model attempt log */}
+                  <div
+                    ref={logRef}
+                    className="px-6 py-4 space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar border-b border-zinc-900"
+                  >
+                    {aiLog.map(entry => renderLogEntry(entry))}
+                    {aiLog.length === 0 && loading && (
+                      <div className="flex items-center gap-2 text-zinc-700 text-[11px]">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Initializing model chain...
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Live thinking text */}
+                  {(aiThinking || loading) && (
+                    <div className="px-6 py-4 bg-zinc-950/80">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600">
+                          {aiThinking ? 'Live Output' : 'Waiting for response...'}
+                        </span>
+                      </div>
+                      <div
+                        ref={thinkingRef}
+                        className="font-mono text-[11px] text-zinc-500 leading-relaxed max-h-[180px] overflow-y-auto custom-scrollbar whitespace-pre-wrap break-all"
+                      >
+                        {aiThinking || (
+                          <span className="text-zinc-800 italic">Streaming will appear here as the model generates...</span>
+                        )}
+                        {loading && <span className="inline-block w-1.5 h-3.5 bg-orange-500 animate-pulse ml-0.5 align-middle" />}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {(building || buildStatus) && (
                 <div className="space-y-4 p-6 bg-zinc-900/40 border border-zinc-900 rounded-4xl animate-in slide-in-from-top-4 duration-500">
@@ -399,7 +663,7 @@ export default function Home() {
                           </div>
                           <div className="flex items-center gap-2">
                              <ChevronRight className={`w-3 h-3 text-zinc-800 transition-transform ${selectedFile?.path === file.path ? 'rotate-90 text-orange-500' : ''}`} />
-                             <button onClick={(e) => removeFile(file.path, e)} className="opacity-0 group-hover:opacity-100 p-2 text-zinc-800 hover:text-red-500 transition-all">
+                             <button onClick={(e) => removeFile(file.path, e)} className="opacity-0 group-hover:opacity-100 p-2 text-zinc-800 hover:text-red-500 transition-all cursor-pointer active:scale-95">
                                 <Trash2 className="w-4 h-4" />
                              </button>
                           </div>
@@ -435,7 +699,7 @@ export default function Home() {
                     <span className="text-[10px] text-zinc-500 uppercase font-black tracking-widest">{selectedFile.path}</span>
                   </div>
                </div>
-               <button onClick={() => setSelectedFile(null)} className="p-3 bg-zinc-950 hover:bg-zinc-800 rounded-2xl border border-zinc-800 transition-colors">
+               <button onClick={() => setSelectedFile(null)} className="p-3 bg-zinc-950 hover:bg-zinc-800 rounded-2xl border border-zinc-800 transition-colors cursor-pointer active:scale-95">
                  <X className="w-5 h-5" />
                </button>
             </header>
@@ -489,7 +753,8 @@ export default function Home() {
         .image-pixelated {
           image-rendering: pixelated;
         }
-      `}</style>
+      `}
+      </style>
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>
   );
