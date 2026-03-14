@@ -268,7 +268,7 @@ All generated files MUST use these exact versions:
 |------|-------------|
 | \`fabric.mod.json\` | \`"minecraft": "~1.21.11"\` |
 | \`build.gradle\` | \`minecraft "com.mojang:minecraft:1.21.11"\` |
-| yarn mappings | \`"net.fabricmc:yarn:1.21.11+build.4:v2"\` |
+| Mappings | \`loom.officialMojangMappings()\` |
 | fabric-api | \`"0.141.3+1.21.11"\` |
 
 ## Response Format

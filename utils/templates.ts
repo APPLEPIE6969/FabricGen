@@ -17,7 +17,7 @@ repositories {
 
 dependencies {
 	minecraft "com.mojang:minecraft:1.21.11"
-	mappings "net.fabricmc:yarn:1.21.11+build.4:v2"
+	mappings loom.officialMojangMappings()
 	modImplementation "net.fabricmc:fabric-loader:0.18.4"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:0.141.3+1.21.11"
 }
@@ -60,7 +60,6 @@ publishing {
 	gradleProperties: (modId: string) => `
 org.gradle.jvmargs=-Xmx2G
 minecraft_version=1.21.11
-yarn_mappings=1.21.11+build.4
 loader_version=0.18.4
 mod_version=1.0.0
 maven_group=com.example
