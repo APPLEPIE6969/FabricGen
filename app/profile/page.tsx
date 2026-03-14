@@ -87,7 +87,7 @@ export default function ProfilePage() {
           </div>
           <button
             onClick={() => setAuthModalOpen(true)}
-            className="inline-flex items-center gap-2 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all active:scale-95"
+            className="inline-flex items-center gap-2 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all active:scale-95 cursor-pointer"
           >
             <LogIn className="w-4 h-4" /> Sign In
           </button>
@@ -180,7 +180,7 @@ export default function ProfilePage() {
                       <button
                         onClick={() => handleDeleteMod(mod.$id)}
                         disabled={deleting === mod.$id}
-                        className="p-2 text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                        className="p-2 text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer active:scale-95"
                         title="Delete mod"
                       >
                         {deleting === mod.$id ? (

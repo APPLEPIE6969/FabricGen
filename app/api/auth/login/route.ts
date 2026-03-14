@@ -22,18 +22,23 @@ export async function POST(req: Request) {
     const account = new Account(client);
 
     const session = await account.createEmailPasswordSession(email, password);
+    const user = await account.get(); // Fetch user details after session creation
 
     // Set session as httpOnly cookie for security
     const response = NextResponse.json({
-      success: true,
-      userId: session.userId,
-      sessionId: session.$id,
+      user: {
+        id: user.$id,
+        email: user.email,
+        name: user.name,
+        emailVerification: user.emailVerification,
+      },
+      success: true
     });
 
     response.cookies.set('appwrite-session', session.secret, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax', // Use lax for better compatibility during auth redirects
       maxAge: 60 * 60 * 24 * 30, // 30 days
       path: '/',
     });

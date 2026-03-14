@@ -23,6 +23,7 @@ export async function GET() {
         name: user.name,
         emailVerification: user.emailVerification,
       },
+      success: true,
     });
   } catch (error: any) {
     // Session is invalid or expired

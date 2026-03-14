@@ -129,7 +129,7 @@ export default function SettingsPage() {
           </div>
           <button
             onClick={() => setAuthModalOpen(true)}
-            className="inline-flex items-center gap-2 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all active:scale-95"
+            className="inline-flex items-center gap-2 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all active:scale-95 cursor-pointer"
           >
             <LogIn className="w-4 h-4" /> Sign In
           </button>
@@ -208,7 +208,7 @@ export default function SettingsPage() {
                   <button
                     onClick={saveProfile}
                     disabled={savingProfile}
-                    className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-bold text-xs px-5 py-2.5 rounded-xl transition-all active:scale-95 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-bold text-xs px-5 py-2.5 rounded-xl transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                   >
                     {savingProfile ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -237,7 +237,7 @@ export default function SettingsPage() {
                   </div>
                   <button
                     onClick={() => setSettings({ ...settings, dark_mode: !settings.dark_mode })}
-                    className={`w-12 h-7 rounded-full transition-colors relative ${
+                    className={`w-12 h-7 rounded-full transition-colors cursor-pointer active:scale-95 relative ${
                       settings.dark_mode ? 'bg-orange-500' : 'bg-zinc-700'
                     }`}
                   >
@@ -253,7 +253,7 @@ export default function SettingsPage() {
                   <div className="relative">
                     <button
                       onClick={() => setIsVersionDropdownOpen(!isVersionDropdownOpen)}
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 transition-all flex items-center justify-between hover:bg-zinc-900 active:scale-[0.99]"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 transition-all flex items-center justify-between hover:bg-zinc-900 active:scale-[0.99] cursor-pointer"
                     >
                       {minecraftVersions.find(v => v.value === settings.default_minecraft_version)?.label || settings.default_minecraft_version}
                       <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform ${isVersionDropdownOpen ? 'rotate-180' : ''}`} />
@@ -267,7 +267,7 @@ export default function SettingsPage() {
                               setSettings({ ...settings, default_minecraft_version: version.value });
                               setIsVersionDropdownOpen(false);
                             }}
-                            className={`w-full text-left px-4 py-3 text-sm transition-colors hover:bg-zinc-800 ${
+                            className={`w-full text-left px-4 py-3 text-sm transition-colors hover:bg-zinc-800 cursor-pointer ${
                               settings.default_minecraft_version === version.value 
                                 ? 'text-orange-500 font-bold bg-orange-500/10' 
                                 : 'text-zinc-300'
@@ -284,7 +284,7 @@ export default function SettingsPage() {
                   <button
                     onClick={saveSettings}
                     disabled={savingSettings}
-                    className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-bold text-xs px-5 py-2.5 rounded-xl transition-all active:scale-95 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-bold text-xs px-5 py-2.5 rounded-xl transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                   >
                     {savingSettings ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />

@@ -77,7 +77,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                 </p>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 text-zinc-600 hover:text-zinc-300 transition-colors">
+            <button onClick={onClose} className="p-2 text-zinc-600 hover:text-zinc-300 transition-colors cursor-pointer active:scale-95">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -166,7 +166,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
               <button
                 type="button"
                 onClick={switchMode}
-                className="text-xs text-zinc-500 hover:text-orange-500 transition-colors"
+                className="text-xs text-zinc-500 hover:text-orange-500 transition-colors cursor-pointer active:scale-95"
               >
                 {mode === 'login' ? (
                   <>Don&apos;t have an account? <span className="font-bold text-orange-500">Sign up</span></>

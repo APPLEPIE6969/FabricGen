@@ -332,6 +332,7 @@ You MUST respond with a JSON object wrapped in markdown code blocks:
 
       let lastError: any = null;
       let succeeded = false;
+      let accumulatedContent = '';
 
       // Try each model in unified best-to-worst order
       for (const { provider, model, params } of MODELS) {
@@ -350,7 +351,11 @@ You MUST respond with a JSON object wrapped in markdown code blocks:
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: prompt },
-            ],
+              ...(accumulatedContent ? [
+                { role: 'assistant', content: accumulatedContent },
+                { role: 'user', content: "CRITICAL: The previous model stalled. CONTINUE EXACTLY from the last character above. Do not repeat anything. Finish the JSON structure." }
+              ] : [])
+            ] as any,
             model: model,
             stream: true,
           }, {
@@ -365,15 +370,15 @@ You MUST respond with a JSON object wrapped in markdown code blocks:
             } : {})
           });
 
-          let fullContent = '';
+          const modelStartTime = Date.now();
           let thinkingBuffer = '';
           let lastFlush = Date.now();
 
           // ── Stuck-AI Watchdog (3-minute monitor) ───────────────────────
-          let lastCheckLength = -1;
+          let lastCheckLength = accumulatedContent.length;
           let unchangedCount = 0;
           const watchdogInterval = setInterval(() => {
-            if (fullContent.length === lastCheckLength) {
+            if (accumulatedContent.length === lastCheckLength) {
               unchangedCount++;
               console.warn(`[WATCHDOG] Progress stalled for ${unchangedCount} minute(s) on ${model}`);
               if (unchangedCount >= 3) {
@@ -381,7 +386,7 @@ You MUST respond with a JSON object wrapped in markdown code blocks:
                 abortController.abort();
               }
             } else {
-              lastCheckLength = fullContent.length;
+              lastCheckLength = accumulatedContent.length;
               unchangedCount = 0;
             }
           }, 60000);
@@ -396,7 +401,7 @@ You MUST respond with a JSON object wrapped in markdown code blocks:
               const combined = reasoningContent + textContent;
 
               if (combined) {
-                fullContent += combined;
+                accumulatedContent += combined;
                 thinkingBuffer += combined;
 
                 const now = Date.now();
@@ -417,12 +422,16 @@ You MUST respond with a JSON object wrapped in markdown code blocks:
 
           clearTimeout(timeoutId);
 
-          if (!fullContent || fullContent.trim() === '') {
+          if (!accumulatedContent || accumulatedContent.trim() === '') {
             throw new Error('Empty response from model');
           }
 
-          // ── Smart JSON Extraction & Repair ──────────────────────────────────────
-          const { data: responseData, repairs, success } = parseJsonWithRepair(fullContent);
+          // ── Pre-Extraction Prep: Remove thinking tags ────────────────
+          // We keep the original for debugging but clean it for parsing
+          const cleanResponse = accumulatedContent.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+          
+          send('json_repair', { strategy: 'extract_blocks' });
+          const { data: responseData, repairs, success } = parseJsonWithRepair(cleanResponse);
 
           if (!success) {
             throw new Error('Failed to parse JSON after all repair attempts');

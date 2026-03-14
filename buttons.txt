@@ -1,0 +1,21 @@
+app/page.tsx:             <button onClick={handleReset} className="p-2 text-zinc-600 hover:text-orange-500 transition-colors" title="Reset Project"><RotateCcw className="w-5 h-5" /></button>
+app/page.tsx:               <button
+app/page.tsx:                <button
+app/page.tsx:                <button
+app/page.tsx:                <button
+app/page.tsx:                             <button onClick={(e) => removeFile(file.path, e)} className="opacity-0 group-hover:opacity-100 p-2 text-zinc-800 hover:text-red-500 transition-all">
+app/page.tsx:               <button onClick={() => setSelectedFile(null)} className="p-3 bg-zinc-950 hover:bg-zinc-800 rounded-2xl border border-zinc-800 transition-colors">
+app/profile/page.tsx:          <button
+app/profile/page.tsx:                      <button
+app/settings/page.tsx:          <button
+app/settings/page.tsx:                  <button
+app/settings/page.tsx:                  <button
+app/settings/page.tsx:                    <button
+app/settings/page.tsx:                          <button
+app/settings/page.tsx:                  <button
+components/AuthModal.tsx:            <button onClick={onClose} className="p-2 text-zinc-600 hover:text-zinc-300 transition-colors">
+components/AuthModal.tsx:                <button
+components/AuthModal.tsx:            <button
+components/AuthModal.tsx:              <button
+components/UserMenu.tsx:      <button
+components/UserMenu.tsx:            <button
