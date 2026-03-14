@@ -211,35 +211,33 @@ function sseEvent(type: string, payload: any): string {
 export async function POST(req: Request) {
   const { prompt, modId, modName, mavenGroup, currentFiles, baseTemplates } = await req.json();
 
-  const systemPrompt = `You are a world-class Minecraft Fabric 1.21.11 Mod Architect.
-Your goal is to manage the source code and resources for a mod project iteratively.
+  const systemPrompt = `You are the ultimate Universe-Class Minecraft Fabric 1.21.11 Mod Architect. 
+Your goal is to design and implement mods that feel like part of the Vanilla game, but with modern engineering excellence.
 
-Project Info:
-- Name: ${modName}
-- ID: ${modId}
+Project Specifications:
+- Mod Name: ${modName}
+- Mod ID: ${modId}
 - Package: ${mavenGroup}.${modId}
+- Mappings: STRICTLY Official Mojang Mappings (Mojmap).
+- JDK Compliance: Java 21 (Use Multi-line strings, Pattern Matching for instanceof, and Records).
 
-Project State:
-- Base Files (ReadOnly Templates):
-${JSON.stringify(baseTemplates, null, 2)}
+Architecture & Logic Excellence:
+1. MODULAR REGISTRIES: Always organize your registrations (Items, Blocks, Entities) into dedicated 'ModItems', 'ModBlocks', etc. classes.
+2. VANILLA FEEL: Ensure all item and block properties (blast resistance, hardness, tool requirements) are realistic and consistent with Minecraft.
+3. DETAILED TEXTURE PROMPTS:
+   - For ANY texture (.png), set encoding to "texture_prompt".
+   - Your "content" MUST be a HIGH-FIDELITY visual description. 
+   - Focus on: Material (e.g., "worn iron"), Lighting (e.g., "gentle bloom on top edges"), Shading (e.g., "dithering for depth"), and Palette (e.g., "muted volcanic grays with ember speckles").
+   - Set "texture_size" to: 16 (items/standard blocks), 32 (detailed blocks), or 64 (complex textures).
+4. COMPLETE RESOURCES: Every block/item MUST have:
+   - A blockstate/model JSON.
+   - An entry in the 'en_us.json' lang file.
+   - A texture prompt.
 
-- Current Generated Files:
-${JSON.stringify(currentFiles || [], null, 2)}
-
-Instructions:
-1. Analyze the user request and current project state.
-2. Determine which files need to be ADDED, MODIFIED, or REMOVED.
-3. You generate Java code, JSON models, lang files, etc.
-4. TEXTURE GENERATION:
-   - For ANY texture file (.png), DO NOT generate base64 content yourself.
-   - Instead, set "content" to a highly descriptive prompt for the texture.
-     Be descriptive about shape, colors, shading, and style (e.g. "a shiny purple amethyst gemstone, faceted with light and dark purple shades, subtle sparkle highlights, dark edges, Minecraft item icon style").
-   - Set "encoding" to "texture_prompt".
-   - Set "texture_size" to one of: 8, 16, 32, or 64 (pick the right resolution — items are usually 16, blocks are usually 16 or 32, detailed blocks can be 64).
-   - The system will use AI to generate the texture programmatically.
-5. Your response MUST be a JSON object with 'upsert' and 'delete' arrays.
-
-Response Schema:
+Response Integrity:
+- You respond ONLY with a JSON object.
+- Surround your JSON with markdown code blocks like this: \`\`\`json [JSON_HERE] \`\`\`
+- Response Schema:
 {
   "upsert": [
     {
@@ -252,11 +250,7 @@ Response Schema:
   "delete": ["string"]
 }
 
-Rules:
-- Resource paths: src/main/resources/assets/${modId}/...
-- Java paths: src/main/java/${mavenGroup.replace(/\./g, '/')}/${modId}/...
-- Always provide FULL content for modified files.
-- DO NOT explain. Only return the JSON.`;
+FINAL RULE: NO CONVERSATIONAL TEXT. NO EXPLANATIONS. START WITH \`\`\`json.`;
 
   // Build OpenAI clients for each provider
   const clients: Partial<Record<ProviderKey, OpenAI>> = {};
@@ -349,16 +343,45 @@ Rules:
             throw new Error('Empty response from model');
           }
 
-          // Parse the JSON response
-          let responseData;
-          try {
-            responseData = JSON.parse(fullContent);
-          } catch {
-            const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              responseData = JSON.parse(jsonMatch[0]);
+          // ── Smart JSON Extraction ──────────────────────────────────────
+          let responseData: any = null;
+          
+          // 1. Try markdown json block
+          const jsonBlockMatch = fullContent.match(/```json\s*([\s\S]*?)```/);
+          if (jsonBlockMatch) {
+            try {
+              responseData = JSON.parse(jsonBlockMatch[1].trim());
+              console.log('✓ Extracted JSON from markdown block');
+            } catch (e) {
+              console.warn('Failed to parse JSON from markdown block, falling back...');
+            }
+          }
+
+          // 2. Try generic code block if json block failed
+          if (!responseData) {
+            const genericBlockMatch = fullContent.match(/```\s*([\s\S]*?)```/);
+            if (genericBlockMatch) {
+              try {
+                responseData = JSON.parse(genericBlockMatch[1].trim());
+                console.log('✓ Extracted JSON from generic code block');
+              } catch (e) {
+                console.warn('Failed to parse JSON from generic code block, falling back...');
+              }
+            }
+          }
+
+          // 3. Last resort: regex brace match
+          if (!responseData) {
+            const rawJsonMatch = fullContent.match(/\{[\s\S]*\}/);
+            if (rawJsonMatch) {
+              try {
+                responseData = JSON.parse(rawJsonMatch[0]);
+                console.log('✓ Extracted JSON from raw regex match');
+              } catch (e) {
+                throw new Error('Response was not valid JSON even after extraction attempts');
+              }
             } else {
-              throw new Error('Response was not valid JSON');
+              throw new Error('No JSON structure found in response');
             }
           }
 
