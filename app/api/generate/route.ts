@@ -98,7 +98,8 @@ async function generatePixelArt(
   size: number,
   clients: Partial<Record<ProviderKey, OpenAI>>,
   send?: (type: string, payload: any) => void,
-  preferredProvider: string = 'auto'
+  preferredProvider: string = 'auto',
+  realPath?: string
 ): Promise<string | null> {
 
   const textureSystemPrompt = `You are a Minecraft pixel art texture artist AI.
@@ -216,6 +217,7 @@ RESPOND WITH ONLY THE PYTHON CODE. No markdown, no explanation, no backticks. Ju
         // Validate it's actual base64 and looks like a PNG
         if (base64Result.length > 50 && /^[A-Za-z0-9+/=]+$/.test(base64Result)) {
           console.log(`[TEXTURE AI] ✓ Successfully generated ${size}x${size} texture (${base64Result.length} chars base64)`);
+          send?.('texture_preview', { path: realPath || 'unknown', base64: base64Result });
           return base64Result;
         } else {
           console.error(`[TEXTURE AI] Output doesn't look like valid base64 (${base64Result.length} chars)`);
@@ -509,7 +511,7 @@ You MUST respond with a JSON object wrapped in markdown code blocks:
                 send('texture', { path: file.path, prompt: file.content, size });
                 console.log(`[TEXTURE] Generating ${size}x${size} for ${file.path}: "${file.content}"`);
 
-                const base64 = await generatePixelArt(file.content, size, clients, send, preferredProvider);
+                const base64 = await generatePixelArt(file.content, size, clients, send, preferredProvider, file.path);
                 if (base64) {
                   file.content = base64;
                   file.encoding = 'base64';

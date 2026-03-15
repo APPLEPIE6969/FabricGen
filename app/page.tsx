@@ -19,13 +19,14 @@ interface ModFile {
 // ── AI Live Feedback types ──────────────────────────────────────────────
 interface AiLogEntry {
   id: number;
-  type: 'model_try' | 'model_fail' | 'model_success' | 'texture' | 'texture_done' | 'textures_start' | 'texture_ai' | 'texture_exec' | 'texture_exec_fail' | 'info';
+  type: 'model_try' | 'model_fail' | 'model_success' | 'texture' | 'texture_done' | 'texture_preview' | 'textures_start' | 'texture_ai' | 'texture_exec' | 'texture_exec_fail' | 'info';
   provider?: string;
   model?: string;
   params?: string;
   reason?: string;
   path?: string;
   prompt?: string;
+  base64?: string;
   count?: number;
   message?: string;
   size?: number;
@@ -248,6 +249,10 @@ export default function Home() {
                 addLog({ type: 'texture_done', path: event.payload.path, size: event.payload.size });
                 break;
 
+              case 'texture_preview':
+                addLog({ type: 'texture_preview', path: event.payload.path, base64: event.payload.base64 });
+                break;
+
               case 'result':
                 // Process the final result exactly like before
                 setGeneratedFiles(prev => {
@@ -452,12 +457,31 @@ export default function Home() {
         );
       case 'texture_done':
         return (
-          <div key={entry.id} className="flex items-start gap-2 animate-in slide-in-from-left-2 duration-300 pl-4">
-            <CheckCircle2 className="w-2.5 h-2.5 text-purple-500 mt-0.5 shrink-0" />
-            <span className="text-zinc-500 text-[10px]">
-              <span className="text-purple-300 font-mono">{entry.path?.split('/').pop()}</span>
-              <span className="text-purple-500/60 font-bold"> {entry.size}×{entry.size}</span> done
-            </span>
+          <div key={entry.id} className="flex flex-col gap-2 animate-in slide-in-from-left-2 duration-300 pl-4">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="w-2.5 h-2.5 text-purple-500 mt-0.5 shrink-0" />
+              <span className="text-zinc-500 text-[10px]">
+                <span className="text-purple-300 font-mono">{entry.path?.split('/').pop()}</span>
+                <span className="text-purple-500/60 font-bold"> {entry.size}×{entry.size}</span> done
+              </span>
+            </div>
+          </div>
+        );
+      case 'texture_preview':
+        return (
+          <div key={entry.id} className="flex flex-col gap-2 animate-in slide-in-from-left-2 duration-300 pl-8 mt-1 mb-2">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-2.5 h-2.5 text-orange-500" />
+              <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest leading-none">Live Generation Preview</span>
+            </div>
+            <div className="w-12 h-12 bg-zinc-950 border border-orange-500/20 rounded shadow-lg p-1 group relative overflow-hidden">
+               <div className="absolute inset-0 bg-orange-500/5 animate-pulse" />
+               <img 
+                 src={`data:image/png;base64,${entry.base64}`} 
+                 alt="preview" 
+                 className="w-full h-full object-contain image-pixelated relative z-10" 
+               />
+            </div>
           </div>
         );
       case 'info':
