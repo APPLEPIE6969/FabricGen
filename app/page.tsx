@@ -546,7 +546,7 @@ export default function Home() {
                          formData.preferredProvider === 'nvidia' ? 'NVIDIA (Experts)' : 
                          formData.preferredProvider === 'groq' ? 'GROQ (Ultra-Fast)' : 
                          formData.preferredProvider === 'cerebras' ? 'CEREBRAS (Fast)' : 
-                         'OPENROUTER (Free)'}
+                         'OPENROUTER'}
                       </span>
                       <ChevronRight className={`w-3 h-3 text-orange-500 transition-transform duration-300 ${providerDropdownOpen ? 'rotate-90' : ''}`} />
                     </button>
@@ -558,7 +558,7 @@ export default function Home() {
                           { id: 'nvidia', label: 'NVIDIA (Experts)' },
                           { id: 'groq', label: 'GROQ (Ultra-Fast)' },
                           { id: 'cerebras', label: 'CEREBRAS (Fast)' },
-                          { id: 'openrouter', label: 'OPENROUTER (Free)' },
+                          { id: 'openrouter', label: 'OPENROUTER' },
                         ].map((opt) => (
                           <button
                             key={opt.id}
