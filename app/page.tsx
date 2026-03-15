@@ -543,6 +543,7 @@ export default function Home() {
                     >
                       <span className="text-orange-500 uppercase">
                         {formData.preferredProvider === 'auto' ? 'AUTO (Smartest)' : 
+                         formData.preferredProvider === 'fast' ? 'FAST (Rapid)' :
                          formData.preferredProvider === 'nvidia' ? 'NVIDIA (Experts)' : 
                          formData.preferredProvider === 'groq' ? 'GROQ (Ultra-Fast)' : 
                          formData.preferredProvider === 'cerebras' ? 'CEREBRAS (Fast)' : 
@@ -555,6 +556,7 @@ export default function Home() {
                       <div className="absolute right-0 top-full mt-2 w-48 bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-xl shadow-2xl z-50 overflow-hidden animate-dropdown-open">
                         {[
                           { id: 'auto', label: 'AUTO (Smartest)' },
+                          { id: 'fast', label: 'FAST (Rapid) ✨' },
                           { id: 'nvidia', label: 'NVIDIA (Experts)' },
                           { id: 'groq', label: 'GROQ (Ultra-Fast)' },
                           { id: 'cerebras', label: 'CEREBRAS (Fast)' },

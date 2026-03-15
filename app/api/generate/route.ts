@@ -78,6 +78,16 @@ const TEXTURE_MODELS: RankedModel[] = [
   { provider: 'groq', model: 'llama-3.1-8b-instant', params: '8B (Groq)' },
 ];
 
+// Extremely rapid models for Fast Mode
+const FAST_MODELS: RankedModel[] = [
+  { provider: 'nvidia', model: 'nvidia/nemotron-3-super-120b-a12b', params: '120B MoE (Hybrid/Agentic)' },
+  { provider: 'cerebras', model: 'llama3.1-70b', params: '70B' },
+  { provider: 'groq', model: 'llama-3.3-70b-versatile', params: '70B' },
+  { provider: 'groq', model: 'qwen/qwen3-32b', params: '32B' },
+  { provider: 'cerebras', model: 'llama3.1-8b', params: '8B' },
+  { provider: 'groq', model: 'llama-3.1-8b-instant', params: '8B' },
+];
+
 // ── AI-Powered Texture Generator ────────────────────────────────────────
 // Uses an AI model to generate a Python/PIL script, then executes it to
 // produce high-quality Minecraft pixel art textures. No external API needed.
@@ -125,6 +135,11 @@ RESPOND WITH ONLY THE PYTHON CODE. No markdown, no explanation, no backticks. Ju
 
   const prioritizedTextureModels = preferredProvider === 'auto' 
     ? TEXTURE_MODELS 
+    : preferredProvider === 'fast'
+    ? [
+        ...FAST_MODELS.filter((m: RankedModel) => TEXTURE_MODELS.some((tm: RankedModel) => tm.model === m.model)),
+        ...TEXTURE_MODELS.filter((m: RankedModel) => !FAST_MODELS.some((fm: RankedModel) => fm.model === m.model))
+      ]
     : [
         ...TEXTURE_MODELS.filter(m => m.provider === preferredProvider),
         ...TEXTURE_MODELS.filter(m => m.provider !== preferredProvider)
@@ -350,6 +365,11 @@ You MUST respond with a JSON object wrapped in markdown code blocks:
       // Reorder models based on user preference
       const prioritizedModels = preferredProvider === 'auto' 
         ? MODELS 
+        : preferredProvider === 'fast'
+        ? [
+            ...FAST_MODELS,
+            ...MODELS.filter((m: RankedModel) => !FAST_MODELS.some((fm: RankedModel) => fm.model === m.model))
+          ]
         : [
             ...MODELS.filter(m => m.provider === preferredProvider),
             ...MODELS.filter(m => m.provider !== preferredProvider)
