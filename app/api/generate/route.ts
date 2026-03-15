@@ -34,7 +34,7 @@ const MODELS: RankedModel[] = [
   { provider: 'nvidia', model: 'minimaxai/minimax-m2.5', params: '230B' },
   { provider: 'nvidia', model: 'mistralai/devstral-2-123b-instruct-2512', params: '123B (code)' },
   { provider: 'groq', model: 'openai/gpt-oss-120b', params: '120B (Groq)' },
-  { provider: 'nvidia', model: 'nvidia/nemotron-3-super-120b-a12b', params: '120B MoE' },
+  { provider: 'nvidia', model: 'nvidia/nemotron-3-super-120b-a12b', params: '120B MoE (Hybrid/Agentic)' },
   { provider: 'nvidia', model: 'qwen/qwen3-next-80b-a3b-instruct', params: '80B MoE' },
   { provider: 'nvidia', model: 'meta/llama-3.3-70b-instruct', params: '70B' },
   { provider: 'groq', model: 'llama-3.3-70b-versatile', params: '70B (Groq)' },
@@ -66,6 +66,7 @@ const TEXTURE_MODELS: RankedModel[] = [
   { provider: 'nvidia', model: 'qwen/qwen3-coder-480b-a35b-instruct', params: '480B MoE (code)' },
   { provider: 'nvidia', model: 'qwen/qwen3.5-397b-a17b', params: '400B MoE' },
   { provider: 'nvidia', model: 'meta/llama-3.3-70b-instruct', params: '70B' },
+  { provider: 'nvidia', model: 'nvidia/nemotron-3-super-120b-a12b', params: '120B MoE (Hybrid/Agentic)' },
   { provider: 'groq', model: 'llama-3.3-70b-versatile', params: '70B (Groq)' },
   { provider: 'nvidia', model: 'qwen/qwen2.5-coder-32b-instruct', params: '32B (code)' },
   { provider: 'groq', model: 'qwen/qwen3-32b', params: '32B' },
@@ -82,7 +83,8 @@ async function generatePixelArt(
   prompt: string,
   size: number,
   clients: Partial<Record<ProviderKey, OpenAI>>,
-  send?: (type: string, payload: any) => void
+  send?: (type: string, payload: any) => void,
+  preferredProvider: string = 'auto'
 ): Promise<string | null> {
 
   const textureSystemPrompt = `You are a Minecraft pixel art texture artist AI.
@@ -119,7 +121,14 @@ print(base64.b64encode(buf.getvalue()).decode('utf-8'), end='')
 
 RESPOND WITH ONLY THE PYTHON CODE. No markdown, no explanation, no backticks. Just the raw Python script.`;
 
-  for (const { provider, model, params } of TEXTURE_MODELS) {
+  const prioritizedTextureModels = preferredProvider === 'auto' 
+    ? TEXTURE_MODELS 
+    : [
+        ...TEXTURE_MODELS.filter(m => m.provider === preferredProvider),
+        ...TEXTURE_MODELS.filter(m => m.provider !== preferredProvider)
+      ];
+
+  for (const { provider, model, params } of prioritizedTextureModels) {
     const client = clients[provider];
     if (!client) continue;
 
@@ -217,7 +226,7 @@ function sseEvent(type: string, payload: any): string {
 
 // ── Main Generation Endpoint (Streaming SSE) ────────────────────────────
 export async function POST(req: Request) {
-  const { prompt, modId, modName, mavenGroup, currentFiles, baseTemplates } = await req.json();
+  const { prompt, modId, modName, mavenGroup, currentFiles, baseTemplates, preferredProvider = 'auto' } = await req.json();
 
   const systemPrompt = `You are the ultimate Universe-Class Minecraft Fabric 1.21.11 Mod Architect.
 Your goal is to design and implement mods that feel like part of the Vanilla game, but with modern engineering excellence.
@@ -336,8 +345,16 @@ You MUST respond with a JSON object wrapped in markdown code blocks:
       let succeeded = false;
       let accumulatedContent = '';
 
+      // Reorder models based on user preference
+      const prioritizedModels = preferredProvider === 'auto' 
+        ? MODELS 
+        : [
+            ...MODELS.filter(m => m.provider === preferredProvider),
+            ...MODELS.filter(m => m.provider !== preferredProvider)
+          ];
+
       // Try each model in unified best-to-worst order
-      for (const { provider, model, params } of MODELS) {
+      for (const { provider, model, params } of prioritizedModels) {
         const client = clients[provider];
         if (!client) continue;
 
@@ -468,7 +485,7 @@ You MUST respond with a JSON object wrapped in markdown code blocks:
                 send('texture', { path: file.path, prompt: file.content, size });
                 console.log(`[TEXTURE] Generating ${size}x${size} for ${file.path}: "${file.content}"`);
 
-                const base64 = await generatePixelArt(file.content, size, clients, send);
+                const base64 = await generatePixelArt(file.content, size, clients, send, preferredProvider);
                 if (base64) {
                   file.content = base64;
                   file.encoding = 'base64';

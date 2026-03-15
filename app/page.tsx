@@ -49,8 +49,10 @@ export default function Home() {
     mavenGroup: 'com.example',
     description: 'A mod that adds epic things.',
     prompt: 'Add a new item called "Epic Gem" that gives the player strength when held. Also generate a shiny purple texture for it.',
+    preferredProvider: 'auto',
   });
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const { user } = useAuth();
 
   // ── AI Live Feedback state ──────────────────────────────────────────
@@ -62,6 +64,11 @@ export default function Home() {
   const logRef = useRef<HTMLDivElement>(null);
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   // Auto-scroll thinking panel
   useEffect(() => {
@@ -344,11 +351,6 @@ export default function Home() {
     setGeneratedFiles(prev => prev.filter(f => f.path !== path));
     if (selectedFile?.path === path) setSelectedFile(null);
   };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
   // ── Render a single log entry ─────────────────────────────────────────
   const renderLogEntry = (entry: AiLogEntry) => {
     switch (entry.type) {
@@ -459,15 +461,15 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-orange-500/30">
-      <nav className="border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-50">
+      <nav className="border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-50 animate-fade-in">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-linear-to-br from-orange-500 to-orange-700 p-2 rounded-xl shadow-lg shadow-orange-900/20">
+            <div className="bg-linear-to-br from-orange-500 to-orange-700 p-2 rounded-xl shadow-lg shadow-orange-900/20 animate-float">
               <Hammer className="w-5 h-5 text-white" />
             </div>
-            <span className="font-black text-xl tracking-tighter uppercase">FabricGen</span>
+            <span className="font-black text-xl tracking-tighter uppercase animate-fade-in">FabricGen</span>
           </div>
-          <div className="hidden lg:flex items-center gap-10 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">
+          <div className="hidden lg:flex items-center gap-10 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 animate-slide-down">
             <a href="#" className="text-orange-500 border-b-2 border-orange-500 pb-1">Generator</a>
             <a href="#" className="hover:text-zinc-200 transition-colors">Docs</a>
             <a href="#" className="hover:text-zinc-200 transition-colors">Examples</a>
@@ -492,17 +494,17 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 lg:grid-cols-12 gap-16">
         <div className="lg:col-span-7 space-y-12">
           <header>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-500 text-[10px] font-black uppercase tracking-widest mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-500 text-[10px] font-black uppercase tracking-widest mb-6 animate-fade-in">
               <Zap className="w-3 h-3 fill-orange-500" /> Minecraft 1.21.11 Ready
             </div>
-            <h1 className="text-6xl font-black mb-6 tracking-tight leading-[0.9]">
+            <h1 className="text-6xl font-black mb-6 tracking-tight leading-[0.9] animate-slide-up bg-linear-to-b from-white to-zinc-500 bg-clip-text text-transparent">
               Architect your <br />
               <span className="text-zinc-800">perfect mod.</span>
             </h1>
           </header>
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            <section className="bg-zinc-900/20 border border-zinc-900 p-8 rounded-4xl space-y-8 shadow-inner shadow-black/20">
+            <section className="bg-zinc-900/40 backdrop-blur-xl border border-zinc-800/50 p-8 rounded-4xl space-y-8 shadow-2xl shadow-black/20 animate-scale-in">
               <div className="flex items-center gap-2 text-zinc-600 uppercase text-[10px] font-black tracking-widest">
                 <Settings className="w-4 h-4" /> Core Manifest
               </div>
@@ -513,10 +515,28 @@ export default function Home() {
               </div>
             </section>
 
-            <section className="space-y-6">
+            <section className="space-y-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-orange-500 uppercase text-[10px] font-black tracking-widest">
                   <Code className="w-4 h-4" /> Feature Architect
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase text-zinc-600 tracking-widest">Provider:</span>
+                  <div className="relative group/dropdown">
+                    <select 
+                      name="preferredProvider" 
+                      value={formData.preferredProvider} 
+                      onChange={handleChange}
+                      className="appearance-none bg-zinc-950/80 backdrop-blur-md border border-zinc-800 rounded-lg px-3 py-1.5 pr-8 text-[10px] font-black text-orange-500 outline-none focus:ring-1 focus:ring-orange-500 transition-all cursor-pointer hover:border-orange-500/50 animate-spring"
+                    >
+                      <option value="auto">AUTO (Smartest)</option>
+                      <option value="nvidia">NVIDIA (Experts)</option>
+                      <option value="groq">GROQ (Ultra-Fast)</option>
+                      <option value="cerebras">CEREBRAS (Fast)</option>
+                      <option value="openrouter">OPENROUTER (Free)</option>
+                    </select>
+                    <ChevronRight className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 rotate-90 text-orange-500 pointer-events-none group-click/dropdown:rotate-180 transition-transform" />
+                  </div>
                 </div>
               </div>
               
@@ -537,15 +557,15 @@ export default function Home() {
                   <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shrink-0" />
                   <p className="text-[11px] text-zinc-500 font-medium leading-relaxed">
                     <span className="text-zinc-300 font-bold uppercase tracking-wider mr-1">Pro Tip:</span> 
-                    Models via <span className="text-blue-400 font-bold underline decoration-blue-400/20 underline-offset-2">NVIDIA</span> are significantly smarter but may be slower. 
-                    <span className="text-zinc-300 font-bold uppercase tracking-wider mx-1">Groq</span> & <span className="text-zinc-300 font-bold uppercase tracking-wider">Cerebras</span> are ultra-fast for rapid prototyping.
+                    The new <span className="text-blue-400 font-bold underline decoration-blue-400/20 underline-offset-2">NVIDIA Nemotron Hybrid</span> is exceptionally fast and smart for coding. 
+                    <span className="text-zinc-300 font-bold uppercase tracking-wider mx-1">Groq</span> & <span className="text-zinc-300 font-bold uppercase tracking-wider">Cerebras</span> remain elite for ultra-rapid prototyping.
                   </p>
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-2 min-w-[200px] bg-zinc-100 hover:bg-white text-zinc-950 font-black py-5 px-8 rounded-2xl flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-white/5 cursor-pointer"
+                  className={`flex-2 min-w-[200px] bg-zinc-100 hover:bg-white text-zinc-950 font-black py-5 px-8 rounded-2xl flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-white/5 cursor-pointer ${!loading ? 'animate-pulse-glow' : ''}`}
                 >
                   {loading ? (
                     <Loader2 className="w-6 h-6 animate-spin" />
@@ -843,6 +863,7 @@ export default function Home() {
       <footer className="mt-32 border-t border-zinc-900 py-20 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12 text-zinc-700 text-[10px] font-black uppercase tracking-widest">
            <div className="flex items-center gap-12">
+             <button onClick={() => setTermsOpen(true)} className="hover:text-zinc-200 transition-colors cursor-pointer bg-transparent border-none p-0">Terms</button>
              <a href="#" className="hover:text-zinc-200 transition-colors">Stability</a>
              <a href="#" className="hover:text-zinc-200 transition-colors">Security</a>
              <a href="#" className="hover:text-zinc-200 transition-colors">Privacy</a>
@@ -850,6 +871,56 @@ export default function Home() {
            <p>© 2026 FabricGen. Java 21 Runtime Required.</p>
         </div>
       </footer>
+
+      {/* Terms & Disclaimer Modal */}
+      {termsOpen && (
+        <div className="fixed inset-0 z-100 bg-zinc-950/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-[2.5rem] flex flex-col shadow-2xl shadow-black overflow-hidden scale-in-center">
+            <header className="p-8 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
+               <div className="flex items-center gap-4">
+                  <div className="p-3 bg-zinc-950 rounded-2xl border border-zinc-800">
+                    <AlertCircle className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <h2 className="text-sm font-black text-zinc-100 tracking-tight uppercase">Terms & Disclaimers</h2>
+               </div>
+               <button onClick={() => setTermsOpen(false)} className="p-3 bg-zinc-950 hover:bg-zinc-800 rounded-2xl border border-zinc-800 transition-colors cursor-pointer active:scale-95">
+                 <X className="w-5 h-5" />
+               </button>
+            </header>
+            <div className="p-10 space-y-6 text-zinc-400 text-xs leading-relaxed max-h-[60vh] overflow-y-auto custom-scrollbar">
+              <div className="space-y-2">
+                <h3 className="text-zinc-100 font-bold uppercase tracking-widest text-[10px]">1. AI Accuracy</h3>
+                <p>
+                  FabricGen utilizes advanced Artificial Intelligence to generate Minecraft mod code. While highly capable, AI can and does make mistakes. 
+                  Always review the generated code before using it in a production environment.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-orange-500 font-bold uppercase tracking-widest text-[10px]">2. Stability & Liability</h3>
+                <p>
+                  We are NOT responsible for any system crashes, world corruption, or data loss resulting from the use of generated mods. 
+                  Generated code is provided &quot;as is&quot; without any warranties. We recommend testing all mods on a <span className="text-white font-bold">backup copy</span> of your world first.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-zinc-100 font-bold uppercase tracking-widest text-[10px]">3. Usage Rights</h3>
+                <p>
+                  The code generated by FabricGen is yours to use, modify, and distribute. However, you are responsible for ensuring that 
+                  your use of the code complies with Mojang&apos;s EULA and any applicable third-party licenses.
+                </p>
+              </div>
+            </div>
+            <div className="p-8 bg-zinc-950 border-t border-zinc-800 flex justify-end">
+              <button 
+                onClick={() => setTermsOpen(false)}
+                className="bg-orange-600 hover:bg-orange-500 text-white font-black py-3 px-8 rounded-xl transition-all active:scale-95 cursor-pointer uppercase text-[10px]"
+              >
+                I Understand
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
@@ -868,6 +939,22 @@ export default function Home() {
         .image-pixelated {
           image-rendering: pixelated;
         }
+
+        .animate-fade-in { animation: fadeIn 0.8s ease-out forwards; }
+        .animate-scale-in { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-slide-up { animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-slide-down { animation: slideDown 0.5s ease-out forwards; }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        .animate-pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
+        .animate-spring { animation: springIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 5px rgba(249,115,22,0.2); } 50% { box-shadow: 0 0 20px rgba(249,115,22,0.6); } }
+        @keyframes springIn { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1); } }
       `}
       </style>
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
