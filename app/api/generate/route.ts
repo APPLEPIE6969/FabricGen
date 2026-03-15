@@ -27,6 +27,7 @@ const PROVIDER_CONFIG: Record<ProviderKey, { baseURL: string; apiKeyEnv: string 
 const MODELS: RankedModel[] = [
   { provider: 'nvidia', model: 'z-ai/glm5', params: '744B MoE (Thinking)' },
   { provider: 'nvidia', model: 'moonshotai/kimi-k2.5', params: '1T MoE' },
+  { provider: 'nvidia', model: 'moonshotai/kimi-k2-thinking', params: 'Thinking (NV)' },
   { provider: 'nvidia', model: 'mistralai/mistral-large-3-675b-instruct-2512', params: '675B' },
   { provider: 'nvidia', model: 'qwen/qwen3-coder-480b-a35b-instruct', params: '480B MoE (code)' },
   { provider: 'nvidia', model: 'qwen/qwen3.5-397b-a17b', params: '400B MoE' },
@@ -50,7 +51,6 @@ const MODELS: RankedModel[] = [
   { provider: 'groq', model: 'openai/gpt-oss-20b', params: '20B' },
   { provider: 'nvidia', model: 'moonshotai/kimi-k2-instruct', params: 'MoE (NV)' },
   { provider: 'nvidia', model: 'moonshotai/kimi-k2-instruct-0905', params: '~20B MoE (NV)' },
-  { provider: 'nvidia', model: 'moonshotai/kimi-k2-thinking', params: 'Thinking (NV)' },
   { provider: 'groq', model: 'meta-llama/llama-4-scout-17b-16e-instruct', params: '17B MoE' },
   { provider: 'openrouter', model: 'google/gemma-3-12b-it:free', params: '12B' },
   { provider: 'nvidia', model: 'nvidia/nvidia-nemotron-nano-9b-v2', params: '9B' },
@@ -63,6 +63,7 @@ const MODELS: RankedModel[] = [
 const TEXTURE_MODELS: RankedModel[] = [
   { provider: 'nvidia', model: 'z-ai/glm5', params: '744B MoE (Thinking)' },
   { provider: 'nvidia', model: 'moonshotai/kimi-k2.5', params: '1T MoE' },
+  { provider: 'nvidia', model: 'moonshotai/kimi-k2-thinking', params: 'Thinking (NV)' },
   { provider: 'nvidia', model: 'mistralai/mistral-large-3-675b-instruct-2512', params: '675B' },
   { provider: 'nvidia', model: 'qwen/qwen3-coder-480b-a35b-instruct', params: '480B MoE (code)' },
   { provider: 'nvidia', model: 'qwen/qwen3.5-397b-a17b', params: '400B MoE' },
@@ -74,7 +75,6 @@ const TEXTURE_MODELS: RankedModel[] = [
   { provider: 'groq', model: 'qwen/qwen3-32b', params: '32B' },
   { provider: 'nvidia', model: 'moonshotai/kimi-k2-instruct', params: 'MoE (NV)' },
   { provider: 'nvidia', model: 'moonshotai/kimi-k2-instruct-0905', params: 'MoE (NV)' },
-  { provider: 'nvidia', model: 'moonshotai/kimi-k2-thinking', params: 'Thinking (NV)' },
   { provider: 'groq', model: 'llama-3.1-8b-instant', params: '8B (Groq)' },
 ];
 
