@@ -81,6 +81,8 @@ const TEXTURE_MODELS: RankedModel[] = [
 // Extremely rapid models for Fast Mode
 const FAST_MODELS: RankedModel[] = [
   { provider: 'nvidia', model: 'nvidia/nemotron-3-super-120b-a12b', params: '120B MoE (Hybrid/Agentic)' },
+  { provider: 'nvidia', model: 'nvidia/llama-3.1-nemotron-ultra-253b-v1', params: '253B' },
+  { provider: 'nvidia', model: 'nvidia/nemotron-3-nano-30b-a3b', params: '30B MoE' },
   { provider: 'cerebras', model: 'llama3.1-70b', params: '70B' },
   { provider: 'groq', model: 'llama-3.3-70b-versatile', params: '70B' },
   { provider: 'groq', model: 'qwen/qwen3-32b', params: '32B' },
