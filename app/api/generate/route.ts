@@ -25,8 +25,8 @@ const PROVIDER_CONFIG: Record<ProviderKey, { baseURL: string; apiKeyEnv: string 
 };
 
 const MODELS: RankedModel[] = [
-  { provider: 'nvidia', model: 'moonshotai/kimi-k2.5', params: '1T MoE' },
   { provider: 'nvidia', model: 'z-ai/glm5', params: '744B MoE (Thinking)' },
+  { provider: 'nvidia', model: 'moonshotai/kimi-k2.5', params: '1T MoE' },
   { provider: 'nvidia', model: 'mistralai/mistral-large-3-675b-instruct-2512', params: '675B' },
   { provider: 'nvidia', model: 'qwen/qwen3-coder-480b-a35b-instruct', params: '480B MoE (code)' },
   { provider: 'nvidia', model: 'qwen/qwen3.5-397b-a17b', params: '400B MoE' },
@@ -61,8 +61,8 @@ const MODELS: RankedModel[] = [
 
 // Smart models used specifically for texture script generation (smarter first, fast as fallback)
 const TEXTURE_MODELS: RankedModel[] = [
-  { provider: 'nvidia', model: 'moonshotai/kimi-k2.5', params: '1T MoE' },
   { provider: 'nvidia', model: 'z-ai/glm5', params: '744B MoE (Thinking)' },
+  { provider: 'nvidia', model: 'moonshotai/kimi-k2.5', params: '1T MoE' },
   { provider: 'nvidia', model: 'mistralai/mistral-large-3-675b-instruct-2512', params: '675B' },
   { provider: 'nvidia', model: 'qwen/qwen3-coder-480b-a35b-instruct', params: '480B MoE (code)' },
   { provider: 'nvidia', model: 'qwen/qwen3.5-397b-a17b', params: '400B MoE' },
