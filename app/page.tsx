@@ -62,6 +62,8 @@ export default function Home() {
   const logIdRef = useRef(0);
   const thinkingRef = useRef<HTMLDivElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
+  const providerDropdownRef = useRef<HTMLDivElement>(null);
+  const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -122,6 +124,17 @@ export default function Home() {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
   }, [building, formData.modId]);
+  
+  // Handle click outside for custom dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (providerDropdownRef.current && !providerDropdownRef.current.contains(event.target as Node)) {
+        setProviderDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
 
 
@@ -522,20 +535,49 @@ export default function Home() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-black uppercase text-zinc-600 tracking-widest">Provider:</span>
-                  <div className="relative group/dropdown">
-                    <select 
-                      name="preferredProvider" 
-                      value={formData.preferredProvider} 
-                      onChange={handleChange}
-                      className="appearance-none bg-zinc-950/80 backdrop-blur-md border border-zinc-800 rounded-lg px-3 py-1.5 pr-8 text-[10px] font-black text-orange-500 outline-none focus:ring-1 focus:ring-orange-500 transition-all cursor-pointer hover:border-orange-500/50 animate-spring"
+                  <div className="relative" ref={providerDropdownRef}>
+                    <button 
+                      type="button"
+                      onClick={() => setProviderDropdownOpen(!providerDropdownOpen)}
+                      className="flex items-center gap-2 bg-zinc-950/80 backdrop-blur-md border border-zinc-800 rounded-lg px-3 py-1.5 text-[10px] font-black text-white hover:text-orange-500 outline-none focus:ring-1 focus:ring-orange-500 transition-all cursor-pointer hover:border-orange-500/50"
                     >
-                      <option value="auto">AUTO (Smartest)</option>
-                      <option value="nvidia">NVIDIA (Experts)</option>
-                      <option value="groq">GROQ (Ultra-Fast)</option>
-                      <option value="cerebras">CEREBRAS (Fast)</option>
-                      <option value="openrouter">OPENROUTER (Free)</option>
-                    </select>
-                    <ChevronRight className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 rotate-90 text-orange-500 pointer-events-none group-click/dropdown:rotate-180 transition-transform" />
+                      <span className="text-orange-500 uppercase">
+                        {formData.preferredProvider === 'auto' ? 'AUTO (Smartest)' : 
+                         formData.preferredProvider === 'nvidia' ? 'NVIDIA (Experts)' : 
+                         formData.preferredProvider === 'groq' ? 'GROQ (Ultra-Fast)' : 
+                         formData.preferredProvider === 'cerebras' ? 'CEREBRAS (Fast)' : 
+                         'OPENROUTER (Free)'}
+                      </span>
+                      <ChevronRight className={`w-3 h-3 text-orange-500 transition-transform duration-300 ${providerDropdownOpen ? 'rotate-90' : ''}`} />
+                    </button>
+
+                    {providerDropdownOpen && (
+                      <div className="absolute right-0 top-full mt-2 w-48 bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-xl shadow-2xl z-50 overflow-hidden animate-dropdown-open">
+                        {[
+                          { id: 'auto', label: 'AUTO (Smartest)' },
+                          { id: 'nvidia', label: 'NVIDIA (Experts)' },
+                          { id: 'groq', label: 'GROQ (Ultra-Fast)' },
+                          { id: 'cerebras', label: 'CEREBRAS (Fast)' },
+                          { id: 'openrouter', label: 'OPENROUTER (Free)' },
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, preferredProvider: opt.id }));
+                              setProviderDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 text-[10px] font-black transition-all flex items-center justify-between hover:bg-orange-500/10 group/item ${formData.preferredProvider === opt.id ? 'text-orange-500 bg-orange-500/5' : 'text-zinc-400 hover:text-orange-400'}`}
+                          >
+                            {opt.label}
+                            {formData.preferredProvider === opt.id && <CheckCircle2 className="w-3 h-3" />}
+                            <span className="opacity-0 group-hover/item:opacity-100 transition-opacity translate-x-1 group-hover/item:translate-x-0 ml-2">
+                              <ChevronRight className="w-2.5 h-2.5" />
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -947,6 +989,12 @@ export default function Home() {
         .animate-float { animation: float 3s ease-in-out infinite; }
         .animate-pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
         .animate-spring { animation: springIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .animate-dropdown-open { animation: dropdownOpen 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        @keyframes dropdownOpen {
+          from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
