@@ -67,6 +67,7 @@ const TEXTURE_MODELS: RankedModel[] = [
   { provider: 'nvidia', model: 'moonshotai/kimi-k2.5', params: '1T MoE' },
   { provider: 'nvidia', model: 'moonshotai/kimi-k2-thinking', params: 'Thinking (NV)' },
   { provider: 'openrouter', model: 'openrouter/hunter-alpha', params: 'High-Intelligence Reasoner' },
+  { provider: 'openrouter', model: 'openrouter/healer-alpha', params: 'High-Intelligence Reasoner' },
   { provider: 'nvidia', model: 'mistralai/mistral-large-3-675b-instruct-2512', params: '675B' },
   { provider: 'nvidia', model: 'qwen/qwen3-coder-480b-a35b-instruct', params: '480B MoE (code)' },
   { provider: 'nvidia', model: 'qwen/qwen3.5-397b-a17b', params: '400B MoE' },
